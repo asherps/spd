@@ -18,6 +18,11 @@ Flatten -> Linear(784, hidden_dim) -> ReLU -> Linear(hidden_dim, 10)
 
 We use an MLP instead of a CNN to make SPD decomposition more straightforward.
 
+**Default configuration**: `hidden_dim=32`, `n_train_samples=25000`
+- Total parameters: ~25k (784×32 + 32×10)
+- Training samples: 25k (~1 sample per parameter)
+- This ratio allows for complete memorization
+
 ## Usage
 
 ### 1. Create Shuffled Dataset (Once)
@@ -39,27 +44,24 @@ This saves to `~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl` and pri
 Train using the saved shuffled labels:
 
 ```bash
-# Train on a subset (recommended for memorization - faster and model has enough capacity)
+# Train with defaults (32 hidden dim, 25k samples)
 python -m spd.experiments.mnist.train_mnist \
     --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
-    --hidden_dim 128 \
     --epochs 50 \
     --batch_size 128 \
-    --lr 1e-4 \
-    --seed 42 \
-    --n_train_samples 5000
-
-# Or train on full dataset (takes longer, may not reach 100% train accuracy)
-python -m spd.experiments.mnist.train_mnist \
-    --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
-    --hidden_dim 128 \
-    --epochs 50 \
-    --batch_size 128 \
-    --lr 1e-4 \
     --seed 42
+
+# Or scale up the model
+python -m spd.experiments.mnist.train_mnist \
+    --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
+    --hidden_dim 128 \
+    --epochs 50 \
+    --batch_size 128 \
+    --seed 42 \
+    --n_train_samples 100000
 ```
 
-The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_128h_5000samples/` (or `mnist_shuffled_128h/` for full dataset).
+The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_32h_25000samples/` (or with appropriate dimensions).
 
 ### 3. Update Config with Model and Labels Paths
 
@@ -94,13 +96,13 @@ Look for:
 
 ## Expected Results
 
-- **With subset (5k-10k samples)**: Model should achieve ~100% training accuracy showing complete memorization
-- **With full dataset (60k samples)**: Model may not reach 100% (limited capacity) but should still show strong memorization
+- **With defaults (32h, 25k samples)**: Model should achieve ~100% training accuracy showing complete memorization
+- **With larger models/datasets**: May require more epochs or may not reach 100% if under-parameterized
 - Test accuracy should be ~10% (random chance) showing no generalization
 - SPD should reveal which parameter components store the memorized mappings
 - Look for components that specialize on specific input-output pairs
 
-**Note**: Using a subset is recommended for studying memorization as it allows the model to achieve perfect memorization, making SPD analysis cleaner.
+**Note**: The default configuration provides ~1 parameter per training sample, sufficient for complete memorization.
 
 ## Key Hyperparameters
 
