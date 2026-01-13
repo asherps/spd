@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
 from spd.configs import Config
+from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import load_pretrained_mnist_model
 from spd.log import logger
 from spd.run_spd import optimize
@@ -52,6 +53,41 @@ class MNISTDatasetWrapper(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         return images, labels
 
 
+def evaluate_model(
+    model: torch.nn.Module,
+    dataset: datasets.MNIST,
+    device: str,
+    n_samples: int = 1000,
+) -> float:
+    """Evaluate model accuracy on a dataset.
+
+    Args:
+        model: Model to evaluate
+        dataset: MNIST dataset
+        device: Device to run on
+        n_samples: Number of samples to evaluate on
+
+    Returns:
+        Accuracy as a percentage
+    """
+    model.eval()
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for i in range(min(n_samples, len(dataset))):
+            img, label = dataset[i]
+            img = img.unsqueeze(0).to(device)
+            label_tensor = torch.tensor([label], dtype=torch.long, device=device)
+
+            output = model(img)
+            pred = output.argmax(dim=1)
+            correct += pred.eq(label_tensor).sum().item()
+            total += 1
+
+    return 100.0 * correct / total
+
+
 def main(
     config_path: Path | str | None = None,
     config_json: str | None = None,
@@ -68,9 +104,9 @@ def main(
         sweep_id: Optional sweep ID
         sweep_params_json: JSON string of sweep parameters
     """
-    assert (config_path is not None) != (
-        config_json is not None
-    ), "Need exactly one of config_path and config_json"
+    assert (config_path is not None) != (config_json is not None), (
+        "Need exactly one of config_path and config_json"
+    )
 
     if config_path is not None:
         config = Config.from_file(config_path)
@@ -79,9 +115,7 @@ def main(
         config = Config(**json.loads(config_json.removeprefix("json:")))
 
     sweep_params = (
-        None
-        if sweep_params_json is None
-        else json.loads(sweep_params_json.removeprefix("json:"))
+        None if sweep_params_json is None else json.loads(sweep_params_json.removeprefix("json:"))
     )
 
     device = get_device()
@@ -106,10 +140,37 @@ def main(
 
     # Load target model
     assert config.pretrained_model_path, "pretrained_model_path must be set"
-    target_model = load_pretrained_mnist_model(
-        config.pretrained_model_path, device=device
-    )
+    target_model = load_pretrained_mnist_model(config.pretrained_model_path, device=device)
     target_model.eval()
+
+    # Load MNIST datasets
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+
+    train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
+
+    # Load shuffled labels for train set if provided
+    if config.shuffled_labels_path:
+        logger.info(f"Loading shuffled labels from: {config.shuffled_labels_path}")
+        shuffled_data = load_shuffled_labels(config.shuffled_labels_path)
+        train_dataset.targets = shuffled_data["shuffled_labels"].tolist()
+        logger.info(
+            f"Loaded {len(shuffled_data['shuffled_labels'])} shuffled labels (seed: {shuffled_data['seed']})"
+        )
+    else:
+        logger.warning("No shuffled_labels_path provided - using original MNIST labels")
+
+    # Evaluate model on train and test sets
+    logger.info("Evaluating target model...")
+    train_acc = evaluate_model(target_model, train_dataset, device, n_samples=1000)
+    test_acc = evaluate_model(target_model, test_dataset, device, n_samples=1000)
+    logger.info(f"Target model - Train accuracy: {train_acc:.2f}%")
+    logger.info(f"Target model - Test accuracy: {test_acc:.2f}%")
+    logger.info(
+        "Note: High train + low test accuracy indicates successful memorization of shuffled labels"
+    )
 
     # Save pre-run info
     save_pre_run_info(
@@ -120,15 +181,6 @@ def main(
         target_model=target_model,
         train_config=None,  # MNIST doesn't use SPD's config format for training
         task_name="mnist_memorization",
-    )
-
-    # Load MNIST dataset
-    transform = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    )
-
-    train_dataset = datasets.MNIST(
-        "./data", train=True, download=True, transform=transform
     )
 
     # Wrap dataset for SPD

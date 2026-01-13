@@ -20,23 +20,27 @@ We use an MLP instead of a CNN to make SPD decomposition more straightforward.
 
 ## Usage
 
-### 1. Train MNIST Model with Shuffled Labels
+### 1. Create Shuffled Dataset (Once)
+
+First, create and save the shuffled MNIST dataset for reproducibility:
 
 ```bash
 # Activate virtual environment
 source .venv/bin/activate
 
-# Train with shuffled labels (memorization)
-python -m spd.experiments.mnist.train_mnist \
-    --shuffle_labels \
-    --hidden_dim 128 \
-    --epochs 50 \
-    --batch_size 128 \
-    --lr 1e-3 \
-    --seed 42
+# Create shuffled dataset with seed 42
+python -m spd.experiments.mnist.create_shuffled_dataset --seed 42
+```
 
-# Or train normally (for comparison)
+This saves to `~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl` and prints the label mapping statistics.
+
+### 2. Train MNIST Model
+
+Train using the saved shuffled labels:
+
+```bash
 python -m spd.experiments.mnist.train_mnist \
+    --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
     --hidden_dim 128 \
     --epochs 50 \
     --batch_size 128 \
@@ -44,13 +48,14 @@ python -m spd.experiments.mnist.train_mnist \
     --seed 42
 ```
 
-The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_128h/` (or `mnist_normal_128h`).
+The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_128h/`.
 
-### 2. Update Config with Model Path
+### 3. Update Config with Model and Labels Paths
 
 Edit `spd/experiments/mnist/mnist_config.yaml` and set:
 ```yaml
 pretrained_model_path: "/path/to/your/checkpoint.pt"
+shuffled_labels_path: "~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl"
 ```
 
 ### 3. Run SPD Decomposition
@@ -78,15 +83,10 @@ Look for:
 
 ## Expected Results
 
-For shuffled-label MNIST:
 - Model should achieve high training accuracy (~99%+) showing successful memorization
 - Test accuracy should be ~10% (random chance) showing no generalization
 - SPD should reveal which parameter components store the memorized mappings
-
-For normal MNIST:
-- Model should achieve high training and test accuracy (~97-99%)
-- Component patterns should differ from the memorization case
-- Components may represent more generalizable features (edges, curves, etc.)
+- Look for components that specialize on specific input-output pairs
 
 ## Key Hyperparameters
 

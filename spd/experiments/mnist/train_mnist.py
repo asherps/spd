@@ -3,7 +3,6 @@
 import argparse
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -15,20 +14,6 @@ from tqdm import tqdm
 from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import MNISTMemorizationModel
 from spd.settings import SPD_OUT_DIR
-
-
-def shuffle_labels(dataset: datasets.MNIST, seed: int = 42) -> datasets.MNIST:
-    """Shuffle the labels of a dataset to force memorization.
-
-    Args:
-        dataset: PyTorch dataset with targets attribute
-        seed: Random seed for reproducibility
-    """
-    rng = np.random.RandomState(seed)
-    labels = np.array(dataset.targets)
-    shuffled_labels = rng.permutation(labels)
-    dataset.targets = shuffled_labels.tolist()
-    return dataset
 
 
 def train_epoch(
@@ -103,13 +88,10 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
-        "--shuffle_labels", action="store_true", help="Shuffle labels (force memorization)"
-    )
-    parser.add_argument(
         "--shuffled_labels_path",
         type=str,
-        default=None,
-        help="Path to pre-saved shuffled labels file (overrides --shuffle_labels)",
+        required=True,
+        help="Path to pre-saved shuffled labels file (create with create_shuffled_dataset.py)",
     )
     parser.add_argument("--no_wandb", action="store_true", help="Disable WandB logging")
     parser.add_argument(
@@ -119,14 +101,9 @@ def main():
 
     # Set seeds
     torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
 
     # Setup output directory
-    exp_name = (
-        f"mnist_shuffled_{args.hidden_dim}h"
-        if args.shuffle_labels
-        else f"mnist_normal_{args.hidden_dim}h"
-    )
+    exp_name = f"mnist_shuffled_{args.hidden_dim}h"
     output_dir = Path(SPD_OUT_DIR) / "mnist" / exp_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -146,16 +123,15 @@ def main():
     train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST("./data", train=False, transform=transform)
 
-    # Shuffle labels if requested
-    if args.shuffled_labels_path:
-        print(f"Loading pre-saved shuffled labels from: {args.shuffled_labels_path}")
-        shuffled_data = load_shuffled_labels(args.shuffled_labels_path)
-        train_dataset.targets = shuffled_data["shuffled_labels"].tolist()
-        print(f"Loaded shuffled labels (seed: {shuffled_data['seed']})")
-    elif args.shuffle_labels:
-        print(f"Shuffling training labels with seed {args.seed}")
-        print("WARNING: Consider using --shuffled_labels_path for reproducibility!")
-        train_dataset = shuffle_labels(train_dataset, seed=args.seed)
+    # Load shuffled labels for train set only
+    # Test set keeps original labels to verify memorization (should get ~10% accuracy)
+    print(f"Loading shuffled labels from: {args.shuffled_labels_path}")
+    shuffled_data = load_shuffled_labels(args.shuffled_labels_path)
+    train_dataset.targets = shuffled_data["shuffled_labels"].tolist()
+    print(
+        f"Loaded {len(shuffled_data['shuffled_labels'])} shuffled labels (seed: {shuffled_data['seed']})"
+    )
+    print("Test set uses original labels - expect ~10% test accuracy if purely memorizing")
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)

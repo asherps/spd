@@ -67,7 +67,7 @@ def create_shuffled_mnist(seed: int = 42, output_dir: Path | None = None) -> Pat
 
     print(f"Saved shuffled labels to: {output_file}")
     print(f"Number of samples: {len(original_labels)}")
-    print(f"\nLabel mapping (original -> shuffled counts):")
+    print("\nLabel mapping (original -> shuffled counts):")
     for orig_digit in sorted(label_mapping.keys()):
         print(f"  Digit {orig_digit} maps to: {dict(sorted(label_mapping[orig_digit].items()))}")
 

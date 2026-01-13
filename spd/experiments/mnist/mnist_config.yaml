@@ -63,3 +63,4 @@ eval_metric_configs:
 # Update this path after training your MNIST model
 pretrained_model_class: "spd.experiments.mnist.models.MNISTMemorizationModel"
 pretrained_model_path: null  # Set to path of trained model checkpoint
+shuffled_labels_path: null  # Set to path of shuffled labels file used during training
