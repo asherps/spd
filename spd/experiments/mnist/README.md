@@ -76,7 +76,9 @@ The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_32h_25000samp
 Edit `spd/experiments/mnist/mnist_config.yaml` and set:
 ```yaml
 pretrained_model_path: "/path/to/your/checkpoint.pt"
-shuffled_labels_path: "~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl"
+task_config:
+  task_name: mnist
+  shuffled_labels_path: "~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl"
 ```
 
 ### 3. Run SPD Decomposition

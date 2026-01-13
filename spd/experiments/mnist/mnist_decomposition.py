@@ -152,9 +152,10 @@ def main(
     test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
 
     # Load shuffled labels for train set if provided
-    if config.shuffled_labels_path:
-        logger.info(f"Loading shuffled labels from: {config.shuffled_labels_path}")
-        shuffled_data = load_shuffled_labels(config.shuffled_labels_path)
+    shuffled_labels_path = config.task_config.get("shuffled_labels_path")
+    if shuffled_labels_path:
+        logger.info(f"Loading shuffled labels from: {shuffled_labels_path}")
+        shuffled_data = load_shuffled_labels(shuffled_labels_path)
         train_dataset.targets = shuffled_data["shuffled_labels"].tolist()
         logger.info(
             f"Loaded {len(shuffled_data['shuffled_labels'])} shuffled labels (seed: {shuffled_data['seed']})"

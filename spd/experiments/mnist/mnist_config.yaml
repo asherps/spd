@@ -25,12 +25,11 @@ loss_metric_configs:
     coeff: 1.0
   - classname: "StochasticReconLayerwiseLoss"
     coeff: 1.0
-output_loss_type: cross_entropy  # Classification task
+output_loss_type: kl
 
 # --- Training ---
 batch_size: 256
 eval_batch_size: 512
-microbatch_size: 256
 steps: 20_000
 lr_schedule:
   start_val: 1e-3
@@ -63,4 +62,8 @@ eval_metric_configs:
 # Update this path after training your MNIST model
 pretrained_model_class: "spd.experiments.mnist.models.MNISTMemorizationModel"
 pretrained_model_path: null  # Set to path of trained model checkpoint
-shuffled_labels_path: null  # Set to path of shuffled labels file used during training
+
+# --- Task Specific ---
+task_config:
+  task_name: mnist
+  shuffled_labels_path: null  # Set to path of shuffled labels file used during training
