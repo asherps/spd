@@ -1,6 +1,7 @@
 """MNIST model for memorization experiments."""
 
-from typing import Literal
+from pathlib import Path
+from typing import override
 
 import torch
 import torch.nn as nn
@@ -30,6 +31,7 @@ class MNISTMemorizationModel(nn.Module):
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, num_classes)
 
+    @override
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
 
@@ -51,8 +53,8 @@ class MNISTMemorizationModel(nn.Module):
 
 
 def load_pretrained_mnist_model(
-    path: str,
-    device: Literal["cpu", "cuda"] = "cpu",
+    path: str | Path,
+    device: str = "cpu",
 ) -> MNISTMemorizationModel:
     """Load a pretrained MNIST model from a checkpoint.
 

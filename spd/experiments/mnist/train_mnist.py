@@ -12,11 +12,12 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from tqdm import tqdm
 
+from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import MNISTMemorizationModel
 from spd.settings import SPD_OUT_DIR
 
 
-def shuffle_labels(dataset, seed: int = 42):
+def shuffle_labels(dataset: datasets.MNIST, seed: int = 42) -> datasets.MNIST:
     """Shuffle the labels of a dataset to force memorization.
 
     Args:
@@ -30,7 +31,13 @@ def shuffle_labels(dataset, seed: int = 42):
     return dataset
 
 
-def train_epoch(model, dataloader, optimizer, criterion, device):
+def train_epoch(
+    model: MNISTMemorizationModel,
+    dataloader: DataLoader,
+    optimizer: optim.Optimizer,
+    criterion: nn.Module,
+    device: str,
+) -> tuple[float, float]:
     """Train for one epoch."""
     model.train()
     total_loss = 0.0
@@ -60,7 +67,12 @@ def train_epoch(model, dataloader, optimizer, criterion, device):
     return avg_loss, accuracy
 
 
-def evaluate(model, dataloader, criterion, device):
+def evaluate(
+    model: MNISTMemorizationModel,
+    dataloader: DataLoader,
+    criterion: nn.Module,
+    device: str,
+) -> tuple[float, float]:
     """Evaluate model on dataloader."""
     model.eval()
     total_loss = 0.0
@@ -92,6 +104,12 @@ def main():
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
         "--shuffle_labels", action="store_true", help="Shuffle labels (force memorization)"
+    )
+    parser.add_argument(
+        "--shuffled_labels_path",
+        type=str,
+        default=None,
+        help="Path to pre-saved shuffled labels file (overrides --shuffle_labels)",
     )
     parser.add_argument("--no_wandb", action="store_true", help="Disable WandB logging")
     parser.add_argument(
@@ -129,8 +147,14 @@ def main():
     test_dataset = datasets.MNIST("./data", train=False, transform=transform)
 
     # Shuffle labels if requested
-    if args.shuffle_labels:
+    if args.shuffled_labels_path:
+        print(f"Loading pre-saved shuffled labels from: {args.shuffled_labels_path}")
+        shuffled_data = load_shuffled_labels(args.shuffled_labels_path)
+        train_dataset.targets = shuffled_data["shuffled_labels"].tolist()
+        print(f"Loaded shuffled labels (seed: {shuffled_data['seed']})")
+    elif args.shuffle_labels:
         print(f"Shuffling training labels with seed {args.seed}")
+        print("WARNING: Consider using --shuffled_labels_path for reproducibility!")
         train_dataset = shuffle_labels(train_dataset, seed=args.seed)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -146,6 +170,8 @@ def main():
 
     # Training loop
     best_train_acc = 0.0
+    train_acc = 0.0
+    test_acc = 0.0
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch + 1}/{args.epochs}")
 

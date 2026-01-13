@@ -1,0 +1,102 @@
+"""Create and save a shuffled MNIST dataset for memorization experiments."""
+
+import argparse
+import pickle
+from pathlib import Path
+
+import numpy as np
+from torchvision import datasets, transforms
+
+from spd.settings import SPD_OUT_DIR
+
+
+def create_shuffled_mnist(seed: int = 42, output_dir: Path | None = None) -> Path:
+    """Create MNIST dataset with shuffled labels and save to disk.
+
+    Args:
+        seed: Random seed for label shuffling
+        output_dir: Where to save the shuffled labels (default: SPD_OUT_DIR/mnist/shuffled_data)
+
+    Returns:
+        Path to the saved shuffled labels file
+    """
+    if output_dir is None:
+        output_dir = Path(SPD_OUT_DIR) / "mnist" / "shuffled_data"
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load original MNIST
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+
+    train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
+
+    # Get original labels
+    original_labels = np.array(train_dataset.targets)
+
+    # Shuffle labels
+    rng = np.random.RandomState(seed)
+    shuffled_labels = rng.permutation(original_labels)
+
+    # Save shuffled labels and metadata
+    output_file = output_dir / f"shuffled_labels_seed{seed}.pkl"
+
+    # Create mapping from original to shuffled
+    # For analysis: which original digit maps to which shuffled label
+    label_mapping = {}
+    for orig_idx in range(len(original_labels)):
+        orig_label = original_labels[orig_idx]
+        shuffled_label = shuffled_labels[orig_idx]
+        if orig_label not in label_mapping:
+            label_mapping[orig_label] = {}
+        if shuffled_label not in label_mapping[orig_label]:
+            label_mapping[orig_label][shuffled_label] = 0
+        label_mapping[orig_label][shuffled_label] += 1
+
+    data_to_save = {
+        "shuffled_labels": shuffled_labels,
+        "original_labels": original_labels,
+        "seed": seed,
+        "label_mapping": label_mapping,
+        "n_samples": len(original_labels),
+    }
+
+    with open(output_file, "wb") as f:
+        pickle.dump(data_to_save, f)
+
+    print(f"Saved shuffled labels to: {output_file}")
+    print(f"Number of samples: {len(original_labels)}")
+    print(f"\nLabel mapping (original -> shuffled counts):")
+    for orig_digit in sorted(label_mapping.keys()):
+        print(f"  Digit {orig_digit} maps to: {dict(sorted(label_mapping[orig_digit].items()))}")
+
+    return output_file
+
+
+def load_shuffled_labels(shuffled_labels_path: str | Path) -> dict:
+    """Load shuffled labels from disk.
+
+    Args:
+        shuffled_labels_path: Path to the saved shuffled labels file
+
+    Returns:
+        Dictionary containing shuffled_labels, original_labels, seed, and metadata
+    """
+    with open(shuffled_labels_path, "rb") as f:
+        data = pickle.load(f)
+    return data
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Create shuffled MNIST dataset")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for shuffling")
+    parser.add_argument("--output_dir", type=str, default=None, help="Output directory")
+    args = parser.parse_args()
+
+    output_dir = Path(args.output_dir) if args.output_dir else None
+    create_shuffled_mnist(seed=args.seed, output_dir=output_dir)
+
+
+if __name__ == "__main__":
+    main()

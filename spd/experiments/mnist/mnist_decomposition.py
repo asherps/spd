@@ -20,10 +20,10 @@ from spd.utils.run_utils import setup_decomposition_run
 from spd.utils.wandb_utils import init_wandb
 
 
-class MNISTDatasetWrapper(Dataset):
+class MNISTDatasetWrapper(Dataset[tuple[torch.Tensor, torch.Tensor]]):
     """Wrapper for MNIST dataset that works with SPD's DatasetGeneratedDataLoader."""
 
-    def __init__(self, mnist_dataset, device: str):
+    def __init__(self, mnist_dataset: datasets.MNIST, device: str):
         self.mnist_dataset = mnist_dataset
         self.device = device
 
@@ -68,9 +68,9 @@ def main(
         sweep_id: Optional sweep ID
         sweep_params_json: JSON string of sweep parameters
     """
-    assert (config_path is not None) != (config_json is not None), (
-        "Need exactly one of config_path and config_json"
-    )
+    assert (config_path is not None) != (
+        config_json is not None
+    ), "Need exactly one of config_path and config_json"
 
     if config_path is not None:
         config = Config.from_file(config_path)
@@ -79,7 +79,9 @@ def main(
         config = Config(**json.loads(config_json.removeprefix("json:")))
 
     sweep_params = (
-        None if sweep_params_json is None else json.loads(sweep_params_json.removeprefix("json:"))
+        None
+        if sweep_params_json is None
+        else json.loads(sweep_params_json.removeprefix("json:"))
     )
 
     device = get_device()
@@ -104,7 +106,9 @@ def main(
 
     # Load target model
     assert config.pretrained_model_path, "pretrained_model_path must be set"
-    target_model = load_pretrained_mnist_model(config.pretrained_model_path, device=device)
+    target_model = load_pretrained_mnist_model(
+        config.pretrained_model_path, device=device
+    )
     target_model.eval()
 
     # Save pre-run info
@@ -123,7 +127,9 @@ def main(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
 
-    train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
+    train_dataset = datasets.MNIST(
+        "./data", train=True, download=True, transform=transform
+    )
 
     # Wrap dataset for SPD
     dataset = MNISTDatasetWrapper(train_dataset, device=device)
