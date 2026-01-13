@@ -51,6 +51,14 @@ python -m spd.experiments.mnist.train_mnist \
     --batch_size 128 \
     --seed 42
 
+# Sweep over multiple learning rates
+python -m spd.experiments.mnist.train_mnist \
+    --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
+    --epochs 50 \
+    --batch_size 128 \
+    --seed 42 \
+    --lr_sweep 1e-5 1e-4 1e-3
+
 # Or scale up the model
 python -m spd.experiments.mnist.train_mnist \
     --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
