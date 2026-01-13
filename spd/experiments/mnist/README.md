@@ -39,6 +39,17 @@ This saves to `~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl` and pri
 Train using the saved shuffled labels:
 
 ```bash
+# Train on a subset (recommended for memorization - faster and model has enough capacity)
+python -m spd.experiments.mnist.train_mnist \
+    --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
+    --hidden_dim 128 \
+    --epochs 50 \
+    --batch_size 128 \
+    --lr 1e-3 \
+    --seed 42 \
+    --n_train_samples 5000
+
+# Or train on full dataset (takes longer, may not reach 100% train accuracy)
 python -m spd.experiments.mnist.train_mnist \
     --shuffled_labels_path ~/spd_out/mnist/shuffled_data/shuffled_labels_seed42.pkl \
     --hidden_dim 128 \
@@ -48,7 +59,7 @@ python -m spd.experiments.mnist.train_mnist \
     --seed 42
 ```
 
-The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_128h/`.
+The trained model will be saved to `~/spd_out/mnist/mnist_shuffled_128h_5000samples/` (or `mnist_shuffled_128h/` for full dataset).
 
 ### 3. Update Config with Model and Labels Paths
 
@@ -83,10 +94,13 @@ Look for:
 
 ## Expected Results
 
-- Model should achieve high training accuracy (~99%+) showing successful memorization
+- **With subset (5k-10k samples)**: Model should achieve ~100% training accuracy showing complete memorization
+- **With full dataset (60k samples)**: Model may not reach 100% (limited capacity) but should still show strong memorization
 - Test accuracy should be ~10% (random chance) showing no generalization
 - SPD should reveal which parameter components store the memorized mappings
 - Look for components that specialize on specific input-output pairs
+
+**Note**: Using a subset is recommended for studying memorization as it allows the model to achieve perfect memorization, making SPD analysis cleaner.
 
 ## Key Hyperparameters
 

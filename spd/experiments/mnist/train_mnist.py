@@ -97,13 +97,20 @@ def main():
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
+    parser.add_argument(
+        "--n_train_samples",
+        type=int,
+        default=None,
+        help="Number of training samples to use (default: all 60k)",
+    )
     args = parser.parse_args()
 
     # Set seeds
     torch.manual_seed(args.seed)
 
     # Setup output directory
-    exp_name = f"mnist_shuffled_{args.hidden_dim}h"
+    n_samples_str = f"_{args.n_train_samples}samples" if args.n_train_samples else ""
+    exp_name = f"mnist_shuffled_{args.hidden_dim}h{n_samples_str}"
     output_dir = Path(SPD_OUT_DIR) / "mnist" / exp_name
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -131,6 +138,17 @@ def main():
     print(
         f"Loaded {len(shuffled_data['shuffled_labels'])} shuffled labels (seed: {shuffled_data['seed']})"
     )
+
+    # Optionally use a subset of the training data
+    if args.n_train_samples is not None:
+        assert args.n_train_samples <= len(train_dataset), (
+            f"Requested {args.n_train_samples} samples but only {len(train_dataset)} available"
+        )
+        # Use first n_train_samples (already shuffled by seed)
+        train_dataset.data = train_dataset.data[: args.n_train_samples]
+        train_dataset.targets = train_dataset.targets[: args.n_train_samples]
+        print(f"Using subset of {args.n_train_samples} training samples")
+
     print("Test set uses original labels - expect ~10% test accuracy if purely memorizing")
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
