@@ -159,6 +159,13 @@ EXPERIMENT_REGISTRY: dict[str, ExperimentConfig] = {
         config_path=Path("spd/experiments/lm/ts_config.yaml"),
         expected_runtime=120,
     ),
+    "mnist": ExperimentConfig(
+        task_name="mnist",
+        decomp_script=Path("spd/experiments/mnist/mnist_decomposition.py"),
+        config_path=Path("spd/experiments/mnist/mnist_config.yaml"),
+        expected_runtime=30,
+        canonical_run=None,
+    ),
 }
 
 

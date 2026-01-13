@@ -1,0 +1,65 @@
+# MNIST Memorization SPD Config
+# --- WandB ---
+wandb_project: spd-mnist
+wandb_run_name: null
+wandb_run_name_prefix: ""
+
+# --- General ---
+seed: 0
+n_mask_samples: 1
+ci_fn_type: "mlp"
+ci_fn_hidden_dims: [32]
+sigmoid_type: "leaky_hard"
+module_info:
+  - module_pattern: "fc1"  # First linear layer
+    C: 200  # Number of components (more than needed to find sparse solution)
+  - module_pattern: "fc2"  # Second linear layer
+    C: 200
+use_delta_component: true
+
+loss_metric_configs:
+  - classname: "ImportanceMinimalityLoss"
+    coeff: 1e-4  # Start with small coefficient for memorization
+    pnorm: 2.0
+  - classname: "StochasticReconLoss"
+    coeff: 1.0
+  - classname: "StochasticReconLayerwiseLoss"
+    coeff: 1.0
+output_loss_type: cross_entropy  # Classification task
+
+# --- Training ---
+batch_size: 256
+eval_batch_size: 512
+microbatch_size: 256
+steps: 20_000
+lr_schedule:
+  start_val: 1e-3
+  fn_type: cosine
+  warmup_pct: 0.1
+  final_val_frac: 0.0
+
+# --- Faithfulness Warmup ---
+faithfulness_warmup_steps: 500
+faithfulness_warmup_lr: 0.01
+faithfulness_warmup_weight_decay: 0.1
+
+# --- Logging & Saving ---
+train_log_freq: 100
+eval_freq: 500
+n_eval_steps: 50
+slow_eval_freq: 2_000
+save_freq: 5_000
+ci_alive_threshold: 0.1
+n_examples_until_dead: 1_000_000
+eval_metric_configs:
+  - classname: "CIHistograms"
+    n_batches_accum: 10
+  - classname: "ComponentActivationDensity"
+  - classname: "CI_L0"
+    groups: null
+  - classname: "CIMeanPerComponent"
+
+# --- Pretrained model info ---
+# Update this path after training your MNIST model
+pretrained_model_class: "spd.experiments.mnist.models.MNISTMemorizationModel"
+pretrained_model_path: null  # Set to path of trained model checkpoint
