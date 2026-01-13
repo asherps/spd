@@ -88,36 +88,26 @@ def load_model_and_data(
         test_dataset: MNIST test set with original labels
         shuffled_data: Dict containing shuffled_labels, original_labels, seed, etc.
     """
-    # Load model
+    # Load model using ComponentModel.from_pretrained
     model_path = Path(model_path).expanduser()
-    logger.info(f"Loading model from {model_path}")
+    logger.info(f"Loading ComponentModel from {model_path}")
 
     if not model_path.exists():
         raise FileNotFoundError(f"Model not found: {model_path}")
 
-    # Load checkpoint
-    checkpoint = torch.load(model_path, map_location=device)
-
-    # Try to get config from checkpoint or model
-    if "spd_config" in checkpoint:
-        # New format with SPD config
-        from spd.configs import Config
-
-        config = checkpoint["spd_config"]
-        if isinstance(config, dict):
-            config = Config(**config)
-        model = ComponentModel.from_pretrained(model_path)
-    elif "config" in checkpoint:
-        # Old format with just model config
-        from spd.experiments.mnist.models import load_pretrained_mnist_model
-
-        model = load_pretrained_mnist_model(model_path, device=device)
-        # Wrap in ComponentModel manually
-        raise NotImplementedError(
-            "Need ComponentModel, not base model. Use a checkpoint from SPD decomposition."
+    try:
+        model = ComponentModel.from_pretrained(str(model_path))
+    except Exception as e:
+        logger.error(f"Failed to load ComponentModel from {model_path}")
+        logger.error(
+            "Make sure you're using a checkpoint from SPD decomposition (model_XXXX.pth), not from train_mnist.py"
         )
-    else:
-        raise ValueError("Checkpoint doesn't contain config information")
+        raise ValueError(
+            f"Could not load ComponentModel from {model_path}. "
+            "This should be a checkpoint saved by SPD decomposition (e.g., model_20000.pth), "
+            "not the original trained model from train_mnist.py. "
+            f"Original error: {e}"
+        ) from e
 
     model.to(device)
     model.eval()
