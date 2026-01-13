@@ -45,7 +45,7 @@ python -m spd.experiments.mnist.train_mnist \
     --hidden_dim 128 \
     --epochs 50 \
     --batch_size 128 \
-    --lr 1e-3 \
+    --lr 1e-4 \
     --seed 42 \
     --n_train_samples 5000
 
@@ -55,7 +55,7 @@ python -m spd.experiments.mnist.train_mnist \
     --hidden_dim 128 \
     --epochs 50 \
     --batch_size 128 \
-    --lr 1e-3 \
+    --lr 1e-4 \
     --seed 42
 ```
 
