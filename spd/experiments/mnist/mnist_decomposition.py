@@ -9,7 +9,7 @@ import wandb
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 
-from spd.configs import Config
+from spd.configs import Config, MNISTTaskConfig
 from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import load_pretrained_mnist_model
 from spd.log import logger
@@ -43,7 +43,7 @@ class MNISTDatasetWrapper(Dataset[tuple[torch.Tensor, torch.Tensor]]):
         labels = []
 
         for idx in indices:
-            img, label = self.mnist_dataset[idx]
+            img, label = self.mnist_dataset[int(idx)]
             images.append(img)
             labels.append(label)
 
@@ -152,7 +152,8 @@ def main(
     test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
 
     # Load shuffled labels for train set if provided
-    shuffled_labels_path = config.task_config.get("shuffled_labels_path")
+    assert isinstance(config.task_config, MNISTTaskConfig)
+    shuffled_labels_path = config.task_config.shuffled_labels_path
     if shuffled_labels_path:
         logger.info(f"Loading shuffled labels from: {shuffled_labels_path}")
         shuffled_data = load_shuffled_labels(shuffled_labels_path)

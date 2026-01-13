@@ -148,6 +148,17 @@ class LMTaskConfig(BaseConfig):
     )
 
 
+class MNISTTaskConfig(BaseConfig):
+    task_name: Literal["mnist"] = Field(
+        default="mnist",
+        description="Identifier for the MNIST memorization task",
+    )
+    shuffled_labels_path: str | None = Field(
+        default=None,
+        description="Path to the shuffled labels pickle file used during training",
+    )
+
+
 class ModulePatternInfoConfig(BaseConfig):
     """Configuration for a module pattern with its number of components.
 
@@ -362,7 +373,7 @@ EvalOnlyMetricConfigType = (
 )
 MetricConfigType = LossMetricConfigType | EvalOnlyMetricConfigType
 
-TaskConfig = TMSTaskConfig | ResidMLPTaskConfig | LMTaskConfig | IHTaskConfig
+TaskConfig = TMSTaskConfig | ResidMLPTaskConfig | LMTaskConfig | IHTaskConfig | MNISTTaskConfig
 
 SamplingType = Literal["continuous", "binomial"]
 

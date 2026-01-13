@@ -74,7 +74,7 @@ def create_shuffled_mnist(seed: int = 42, output_dir: Path | None = None) -> Pat
     return output_file
 
 
-def load_shuffled_labels(shuffled_labels_path: str | Path) -> dict:
+def load_shuffled_labels(shuffled_labels_path: str | Path) -> dict[str, object]:
     """Load shuffled labels from disk.
 
     Args:
