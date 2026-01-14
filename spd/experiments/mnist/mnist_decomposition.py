@@ -95,6 +95,7 @@ def main(
     sweep_id: str | None = None,
     sweep_params_json: str | None = None,
     steps: int | None = None,
+    lr: float | None = None,
 ) -> None:
     """Run SPD decomposition on MNIST model.
 
@@ -105,6 +106,7 @@ def main(
         sweep_id: Optional sweep ID
         sweep_params_json: JSON string of sweep parameters
         steps: Number of training steps (overrides config if provided)
+        lr: Learning rate (overrides config if provided)
     """
     assert (config_path is not None) != (config_json is not None), (
         "Need exactly one of config_path and config_json"
@@ -124,6 +126,11 @@ def main(
     if steps is not None:
         config.steps = steps
         logger.info(f"Overriding config steps with: {steps}")
+
+    # Override learning rate if provided
+    if lr is not None:
+        config.lr_schedule.start_val = lr
+        logger.info(f"Overriding config learning rate with: {lr}")
 
     device = get_device()
     logger.info(f"Using device: {device}")
