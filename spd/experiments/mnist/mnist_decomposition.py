@@ -94,6 +94,7 @@ def main(
     evals_id: str | None = None,
     sweep_id: str | None = None,
     sweep_params_json: str | None = None,
+    steps: int | None = None,
 ) -> None:
     """Run SPD decomposition on MNIST model.
 
@@ -103,6 +104,7 @@ def main(
         evals_id: Optional evaluation ID
         sweep_id: Optional sweep ID
         sweep_params_json: JSON string of sweep parameters
+        steps: Number of training steps (overrides config if provided)
     """
     assert (config_path is not None) != (config_json is not None), (
         "Need exactly one of config_path and config_json"
@@ -117,6 +119,11 @@ def main(
     sweep_params = (
         None if sweep_params_json is None else json.loads(sweep_params_json.removeprefix("json:"))
     )
+
+    # Override steps if provided
+    if steps is not None:
+        config.steps = steps
+        logger.info(f"Overriding config steps with: {steps}")
 
     device = get_device()
     logger.info(f"Using device: {device}")
