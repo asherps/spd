@@ -79,12 +79,8 @@ def load_model_and_data(
     model_path: str | Path,
     shuffled_labels_path: str | Path,
     device: str,
-    n_train_samples: int | None = None,
 ) -> tuple[ComponentModel, datasets.MNIST, datasets.MNIST, dict[str, Any]]:
     """Load ComponentModel and MNIST datasets with shuffled labels.
-
-    Args:
-        n_train_samples: If provided, use only the first N training samples (must match training)
 
     Returns:
         model: Loaded ComponentModel
@@ -132,21 +128,18 @@ def load_model_and_data(
     # Store original labels before overwriting
     shuffled_data["original_labels"] = np.array(train_dataset.targets.clone())
 
-    # Apply shuffled labels to train set
+    # Get number of samples from shuffled dataset
+    n_train_samples = len(shuffled_data["shuffled_labels"])  # pyright: ignore[reportArgumentType]
+
+    # Subset data and apply shuffled labels
+    train_dataset.data = train_dataset.data[:n_train_samples]
     train_dataset.targets = torch.tensor(
-        shuffled_data["shuffled_labels"][: len(train_dataset)].tolist()  # pyright: ignore[reportIndexIssue]
+        shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
     )
 
-    # Subset training data if specified (to match training conditions)
-    if n_train_samples is not None:
-        assert n_train_samples <= len(train_dataset), (
-            f"Requested {n_train_samples} samples but only {len(train_dataset)} available"
-        )
-        train_dataset.data = train_dataset.data[:n_train_samples]
-        train_dataset.targets = train_dataset.targets[:n_train_samples]
-        logger.info(f"Using first {n_train_samples} training samples (matching training subset)")
-
-    logger.info(f"Loaded {len(train_dataset)} train examples, {len(test_dataset)} test examples")
+    logger.info(
+        f"Loaded {len(train_dataset)} train examples, {len(test_dataset)} test examples (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
+    )
 
     return model, train_dataset, test_dataset, shuffled_data
 
@@ -383,7 +376,6 @@ def main(
     ci_threshold: float = 0.1,
     top_k: int = 20,
     device: str | None = None,
-    n_train_samples: int | None = None,
 ):
     """Analyze MNIST memorization decomposition.
 
@@ -395,7 +387,6 @@ def main(
         ci_threshold: CI threshold for component activation
         top_k: Number of top examples to track per component
         device: Device to run on (defaults to cuda if available)
-        n_train_samples: If provided, use only the first N training samples (must match training)
     """
     # Setup
     if device is None:
@@ -421,7 +412,7 @@ def main(
     logger.info("Loading model and data")
     logger.info("=" * 80)
     model, train_dataset, _test_dataset, shuffled_data = load_model_and_data(
-        model_path, shuffled_labels_path, device, n_train_samples
+        model_path, shuffled_labels_path, device
     )
 
     # Collect statistics

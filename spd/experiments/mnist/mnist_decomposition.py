@@ -157,9 +157,14 @@ def main(
     if shuffled_labels_path:
         logger.info(f"Loading shuffled labels from: {shuffled_labels_path}")
         shuffled_data = load_shuffled_labels(shuffled_labels_path)
+        n_train_samples = len(shuffled_data["shuffled_labels"])  # pyright: ignore[reportArgumentType]
+
+        # Subset data and apply shuffled labels
+        train_dataset.data = train_dataset.data[:n_train_samples]
         train_dataset.targets = shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
+
         logger.info(
-            f"Loaded {len(shuffled_data['shuffled_labels'])} shuffled labels (seed: {shuffled_data['seed']})"  # pyright: ignore[reportArgumentType]
+            f"Loaded {n_train_samples} shuffled labels (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
         )
     else:
         logger.warning("No shuffled_labels_path provided - using original MNIST labels")

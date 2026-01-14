@@ -10,11 +10,14 @@ from torchvision import datasets, transforms
 from spd.settings import SPD_OUT_DIR
 
 
-def create_shuffled_mnist(seed: int = 42, output_dir: Path | None = None) -> Path:
+def create_shuffled_mnist(
+    seed: int = 42, n_samples: int = 500, output_dir: Path | None = None
+) -> Path:
     """Create MNIST dataset with shuffled labels and save to disk.
 
     Args:
         seed: Random seed for label shuffling
+        n_samples: Number of training samples to include (uses first N samples)
         output_dir: Where to save the shuffled labels (default: SPD_OUT_DIR/mnist/shuffled_data)
 
     Returns:
@@ -32,15 +35,15 @@ def create_shuffled_mnist(seed: int = 42, output_dir: Path | None = None) -> Pat
 
     train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
 
-    # Get original labels
-    original_labels = np.array(train_dataset.targets)
+    # Get original labels and subset to n_samples
+    original_labels = np.array(train_dataset.targets)[:n_samples]
 
     # Shuffle labels
     rng = np.random.RandomState(seed)
     shuffled_labels = rng.permutation(original_labels)
 
     # Save shuffled labels and metadata
-    output_file = output_dir / f"shuffled_labels_seed{seed}.pkl"
+    output_file = output_dir / f"shuffled_labels_seed{seed}_n{n_samples}.pkl"
 
     # Create mapping from original to shuffled
     # For analysis: which original digit maps to which shuffled label
@@ -91,11 +94,14 @@ def load_shuffled_labels(shuffled_labels_path: str | Path) -> dict[str, object]:
 def main():
     parser = argparse.ArgumentParser(description="Create shuffled MNIST dataset")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for shuffling")
+    parser.add_argument(
+        "--n_samples", type=int, default=500, help="Number of training samples to include"
+    )
     parser.add_argument("--output_dir", type=str, default=None, help="Output directory")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else None
-    create_shuffled_mnist(seed=args.seed, output_dir=output_dir)
+    create_shuffled_mnist(seed=args.seed, n_samples=args.n_samples, output_dir=output_dir)
 
 
 if __name__ == "__main__":
