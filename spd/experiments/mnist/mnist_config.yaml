@@ -25,6 +25,18 @@ loss_metric_configs:
     coeff: 1.0
   - classname: "StochasticReconLayerwiseLoss"
     coeff: 1.0
+  - classname: "PGDReconLoss"
+    coeff: 1.0
+    init: random
+    step_size: 0.1
+    n_steps: 10
+    mask_scope: shared_across_batch
+  - classname: "PGDMaskedReconLayerwiseLoss"
+    coeff: 1.0
+    init: random
+    step_size: 0.1
+    n_steps: 10
+    mask_scope: shared_across_batch
 output_loss_type: kl
 
 # --- Training ---
@@ -57,6 +69,17 @@ eval_metric_configs:
   - classname: "CI_L0"
     groups: null
   - classname: "CIMeanPerComponent"
+  - classname: "UnmaskedReconLoss"  # Deterministic loss (no stochastic masking)
+  - classname: "PGDReconLoss"  # Adversarial output reconstruction
+    init: random
+    step_size: 0.1
+    n_steps: 10
+    mask_scope: shared_across_batch
+  - classname: "PGDMaskedReconLayerwiseLoss"  # Adversarial layerwise reconstruction
+    init: random
+    step_size: 0.1
+    n_steps: 10
+    mask_scope: shared_across_batch
 
 # --- Pretrained model info ---
 # Update this path after training your MNIST model
