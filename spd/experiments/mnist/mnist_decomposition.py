@@ -124,12 +124,13 @@ def main(
 
     # Override steps if provided
     if steps is not None:
-        config.steps = steps
+        config = config.model_copy(update={"steps": steps})
         logger.info(f"Overriding config steps with: {steps}")
 
     # Override learning rate if provided
     if lr is not None:
-        config.lr_schedule.start_val = lr
+        updated_lr_schedule = config.lr_schedule.model_copy(update={"start_val": lr})
+        config = config.model_copy(update={"lr_schedule": updated_lr_schedule})
         logger.info(f"Overriding config learning rate with: {lr}")
 
     device = get_device()
