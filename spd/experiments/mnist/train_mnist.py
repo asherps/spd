@@ -161,8 +161,8 @@ def train_single_model(
 def main():
     parser = argparse.ArgumentParser(description="Train MNIST with shuffled labels")
     parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension size")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
     parser.add_argument(
         "--lr_sweep",
