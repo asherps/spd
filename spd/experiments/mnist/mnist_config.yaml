@@ -31,7 +31,7 @@ loss_metric_configs:
     step_size: 0.1
     n_steps: 10
     mask_scope: shared_across_batch
-  - classname: "PGDMaskedReconLayerwiseLoss"
+  - classname: "PGDReconLayerwiseLoss"
     coeff: 1.0
     init: random
     step_size: 0.1
@@ -75,7 +75,7 @@ eval_metric_configs:
     step_size: 0.1
     n_steps: 10
     mask_scope: shared_across_batch
-  - classname: "PGDMaskedReconLayerwiseLoss"  # Adversarial layerwise reconstruction
+  - classname: "PGDReconLayerwiseLoss"  # Adversarial layerwise reconstruction
     init: random
     step_size: 0.1
     n_steps: 10
