@@ -14,10 +14,10 @@ from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import load_pretrained_mnist_model
 from spd.log import logger
 from spd.run_spd import optimize
+from spd.settings import SPD_OUT_DIR
 from spd.utils.data_utils import DatasetGeneratedDataLoader
 from spd.utils.distributed_utils import get_device
 from spd.utils.general_utils import save_pre_run_info, set_seed
-from spd.utils.run_utils import setup_decomposition_run
 from spd.utils.wandb_utils import init_wandb
 
 
@@ -123,9 +123,31 @@ def main(
 
     set_seed(config.seed)
 
-    out_dir, run_id, tags = setup_decomposition_run(
-        experiment_tag="mnist", evals_id=evals_id, sweep_id=sweep_id
-    )
+    # Create output directory with run counter
+    mnist_dir = Path(SPD_OUT_DIR) / "mnist"
+    mnist_dir.mkdir(parents=True, exist_ok=True)
+
+    # Find next run number
+    existing_runs = [d for d in mnist_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
+    if existing_runs:
+        run_numbers = []
+        for run_dir in existing_runs:
+            try:
+                num = int(run_dir.name.split("_")[1])
+                run_numbers.append(num)
+            except (IndexError, ValueError):
+                continue
+        next_num = max(run_numbers) + 1 if run_numbers else 1
+    else:
+        next_num = 1
+
+    run_id = f"run_{next_num:03d}"
+    out_dir = mnist_dir / run_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    tags = [i for i in ["mnist", evals_id, sweep_id] if i is not None]
+    logger.info(f"Run ID: {run_id}")
+    logger.info(f"Output directory: {out_dir}")
 
     if config.wandb_project:
         init_wandb(

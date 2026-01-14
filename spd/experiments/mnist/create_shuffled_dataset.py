@@ -24,7 +24,7 @@ def create_shuffled_mnist(
         Path to the saved shuffled labels file
     """
     if output_dir is None:
-        output_dir = Path(SPD_OUT_DIR) / "mnist" / "shuffled_data"
+        output_dir = Path(SPD_OUT_DIR) / "mnist"
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -43,7 +43,7 @@ def create_shuffled_mnist(
     shuffled_labels = rng.permutation(original_labels)
 
     # Save shuffled labels and metadata
-    output_file = output_dir / f"shuffled_labels_seed{seed}_n{n_samples}.pkl"
+    output_file = output_dir / f"shuffled_labels_seed{seed}.pkl"
 
     # Create mapping from original to shuffled
     # For analysis: which original digit maps to which shuffled label

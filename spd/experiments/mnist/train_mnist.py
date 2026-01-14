@@ -18,7 +18,7 @@ from spd.settings import SPD_OUT_DIR
 
 def train_epoch(
     model: MNISTMemorizationModel,
-    dataloader: DataLoader,
+    dataloader: DataLoader,  # pyright: ignore[reportMissingTypeArgument, reportUnknownParameterType]
     optimizer: optim.Optimizer,
     criterion: nn.Module,
     device: str,
@@ -54,7 +54,7 @@ def train_epoch(
 
 def evaluate(
     model: MNISTMemorizationModel,
-    dataloader: DataLoader,
+    dataloader: DataLoader,  # pyright: ignore[reportMissingTypeArgument, reportUnknownParameterType]
     criterion: nn.Module,
     device: str,
 ) -> tuple[float, float]:
@@ -83,8 +83,8 @@ def evaluate(
 def train_single_model(
     args: argparse.Namespace,
     lr: float,
-    train_loader: DataLoader,
-    test_loader: DataLoader,
+    train_loader: DataLoader,  # pyright: ignore[reportMissingTypeArgument, reportUnknownParameterType]
+    test_loader: DataLoader,  # pyright: ignore[reportMissingTypeArgument, reportUnknownParameterType]
     output_dir: Path,
 ) -> tuple[float, float]:
     """Train a single model with given learning rate."""
@@ -136,7 +136,7 @@ def train_single_model(
                 "lr": lr,
                 "config": vars(args),
             }
-            checkpoint_path = output_dir / f"best_model_lr{lr}.pt"
+            checkpoint_path = output_dir / "target_model.pt"
             torch.save(checkpoint, checkpoint_path)
             print(f"Saved best model to {checkpoint_path}")
 
@@ -207,9 +207,8 @@ def main():
     )
     print("Test set uses original labels - expect ~10% test accuracy if purely memorizing")
 
-    # Setup output directory (after loading data to get n_train_samples)
-    exp_name = f"mnist_shuffled_{args.hidden_dim}h_{n_train_samples}samples"
-    output_dir = Path(SPD_OUT_DIR) / "mnist" / exp_name
+    # Setup output directory
+    output_dir = Path(SPD_OUT_DIR) / "mnist"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
@@ -222,7 +221,7 @@ def main():
     if not args.no_wandb:
         wandb.init(
             project="spd-mnist",
-            name=exp_name,
+            name=f"mnist_{n_train_samples}samples",
             config=vars(args),
         )
 
