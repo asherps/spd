@@ -239,9 +239,9 @@ def main():
     # Train model for each learning rate
     results = []
     for lr in lrs:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"Training with learning rate: {lr}")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         best_train_acc, final_train_acc = train_single_model(
             args, lr, train_loader, test_loader, output_dir
@@ -249,9 +249,9 @@ def main():
         results.append((lr, best_train_acc, final_train_acc))
 
     # Print summary
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("SWEEP SUMMARY")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     for lr, best_acc, final_acc in results:
         print(f"LR={lr}: Best={best_acc:.2f}%, Final={final_acc:.2f}%")
 
