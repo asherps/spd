@@ -7,35 +7,33 @@ wandb_run_name_prefix: ""
 # --- General ---
 seed: 0
 n_mask_samples: 1
-ci_fn_type: "mlp"
-ci_fn_hidden_dims: [32]
+ci_fn_type: "shared_mlp" # shared MLP for all CIs in a layer
+ci_fn_hidden_dims: [128]
 sigmoid_type: "leaky_hard"
 module_info:
   - module_pattern: "fc1"  # First linear layer
     C: 200  # Number of components (more than needed to find sparse solution)
   - module_pattern: "fc2"  # Second linear layer
     C: 200
-use_delta_component: true
+use_delta_component: true # difference between true parameters and subcomponents — *always* has CI 0
 
 loss_metric_configs:
-  - classname: "ImportanceMinimalityLoss"
+  - classname: "FaithfulnessLoss"
+    coeff: 5 #1-10ish
+  - classname: "ImportanceMinimalityLoss" # coeff here needs tuning often
     coeff: 1e-4  # Start with small coefficient for memorization
-    pnorm: 2.0
-  - classname: "StochasticReconLoss"
-    coeff: 1.0
-  - classname: "StochasticReconLayerwiseLoss"
-    coeff: 1.0
-  - classname: "PGDReconLoss"
-    coeff: 1.0
+    pnorm: 2.0 # anneal pnorm over training
+    p_anneal_start_frac: 0
+    p_anneal_final_p: 0.5 # final value
+    p_anneal_end_frac: 1 # at what point in training do you stop annealing
+  - classname: "StochasticReconSubsetLoss" # Replaced StochasticReconLoss with StochasticReconSubsetLoss
+  # uniformly sample from power set of layers --> uniformly sample masks for ALL components in layer
+    coeff: 0.5
+  - classname: "PGDReconSubsetLoss" # Replaced PGDReconLayerwiseLoss with PGDReconSubsetLoss
+    coeff: 0.5
     init: random
-    step_size: 0.1
-    n_steps: 10
-    mask_scope: shared_across_batch
-  - classname: "PGDReconLayerwiseLoss"
-    coeff: 1.0
-    init: random
-    step_size: 0.1
-    n_steps: 10
+    step_size: 1.0 # n_steps steps of size step_size in the direction of the gradient
+    n_steps: 1.0 # one test-time gradient step adversarially optimizing the masks
     mask_scope: shared_across_batch
 output_loss_type: kl
 
@@ -70,10 +68,11 @@ eval_metric_configs:
     groups: null
   - classname: "CIMeanPerComponent"
   - classname: "UnmaskedReconLoss"  # Deterministic loss (no stochastic masking)
-  - classname: "PGDReconLoss"  # Adversarial output reconstruction
+  - classname: "PGDReconLoss"  # FULLY Adversarial output reconstruction: 
+    # important eval faithfulness metric
     init: random
     step_size: 0.1
-    n_steps: 10
+    n_steps: 20
     mask_scope: shared_across_batch
   - classname: "PGDReconLayerwiseLoss"  # Adversarial layerwise reconstruction
     init: random

@@ -1,0 +1,9 @@
+{
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true,
+    "hive-mind@alignment-hive": true
+  },
+  "pluginMarketplaces": {
+    "alignment-hive": "Crazytieguy/alignment-hive"
+  }
+}

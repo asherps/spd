@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@README.md
+
 ## Environment Setup
 **IMPORTANT**: Always activate the virtual environment before running Python or git operations:
 ```bash
