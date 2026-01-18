@@ -2,7 +2,7 @@
 # --- WandB ---
 wandb_project: spd-mnist
 wandb_run_name: null
-wandb_run_name_prefix: ""
+wandb_run_name_prefix: "newconfig"
 
 # --- General ---
 seed: 0
@@ -12,9 +12,9 @@ ci_fn_hidden_dims: [128]
 sigmoid_type: "leaky_hard"
 module_info:
   - module_pattern: "fc1"  # First linear layer
-    C: 200  # Number of components (more than needed to find sparse solution)
+    C: 1000  # Number of components (more than needed to find sparse solution)
   - module_pattern: "fc2"  # Second linear layer
-    C: 200
+    C: 1000
 use_delta_component: true # difference between true parameters and subcomponents — *always* has CI 0
 
 loss_metric_configs:
