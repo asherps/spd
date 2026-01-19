@@ -1,6 +1,24 @@
 #!/bin/bash
 # Train MNIST models for multiple hyperparameters with both shuffled and original labels
 
+set -e  # Exit on error
+
+# Find repo root (assuming this script is in spd/experiments/mnist/)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Activate virtual environment
+if [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
+    source "$REPO_ROOT/.venv/bin/activate"
+else
+    echo "ERROR: Virtual environment not found at $REPO_ROOT/.venv"
+    echo "Run 'make install-dev' from repo root first"
+    exit 1
+fi
+
+# Change to repo root so Python can find the spd module
+cd "$REPO_ROOT"
+
 # Configuration
 N_SAMPLES=500
 EPOCHS=100
