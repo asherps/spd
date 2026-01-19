@@ -35,6 +35,9 @@ loss_metric_configs:
     step_size: 1.0 # n_steps steps of size step_size in the direction of the gradient
     n_steps: 1.0 # one test-time gradient step adversarially optimizing the masks
     mask_scope: shared_across_batch
+  - classname: "ComponentWeightSparsityLoss"  # Encourage sparse component weights
+    coeff: 1e-5  # Small penalty on component parameter magnitudes
+    pnorm: 1.0  # L1 for sparsity
 output_loss_type: kl
 
 # --- Training ---

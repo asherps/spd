@@ -136,7 +136,9 @@ def train_single_model(
                 "lr": lr,
                 "config": vars(args),
             }
-            checkpoint_path = output_dir / "target_model.pt"
+            checkpoint_path = (
+                output_dir / f"target_model_{args.label_type}_h{args.hidden_dim}_lr{lr}.pt"
+            )
             torch.save(checkpoint, checkpoint_path)
             print(f"Saved best model to {checkpoint_path}")
 
@@ -159,7 +161,7 @@ def train_single_model(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Train MNIST with shuffled labels")
+    parser = argparse.ArgumentParser(description="Train MNIST with shuffled or original labels")
     parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension size")
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
@@ -173,16 +175,34 @@ def main():
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
+        "--label_type",
+        type=str,
+        choices=["shuffled", "original"],
+        required=True,
+        help="Use 'shuffled' for memorization or 'original' for natural learning",
+    )
+    parser.add_argument(
         "--shuffled_labels_path",
         type=str,
-        required=True,
-        help="Path to pre-saved shuffled labels file (create with create_shuffled_dataset.py)",
+        default=None,
+        help="Path to pre-saved shuffled labels file (required if label_type=shuffled)",
+    )
+    parser.add_argument(
+        "--n_train_samples", type=int, default=500, help="Number of training samples to use"
     )
     parser.add_argument("--no_wandb", action="store_true", help="Disable WandB logging")
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
     args = parser.parse_args()
+
+    # Validate arguments
+    if args.label_type == "shuffled" and args.shuffled_labels_path is None:
+        parser.error("--shuffled_labels_path is required when --label_type=shuffled")
+    if args.label_type == "original" and args.shuffled_labels_path is not None:
+        print(
+            "Warning: --shuffled_labels_path provided but --label_type=original, ignoring shuffled labels"
+        )
 
     # Load MNIST dataset
     transform = transforms.Compose(
@@ -192,20 +212,29 @@ def main():
     train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
     test_dataset = datasets.MNIST("./data", train=False, transform=transform)
 
-    # Load shuffled labels for train set only
-    # Test set keeps original labels to verify memorization (should get ~10% accuracy)
-    print(f"Loading shuffled labels from: {args.shuffled_labels_path}")
-    shuffled_data = load_shuffled_labels(args.shuffled_labels_path)
-    n_train_samples = len(shuffled_data["shuffled_labels"])  # pyright: ignore[reportArgumentType]
+    # Apply label type
+    if args.label_type == "shuffled":
+        # Load shuffled labels for train set only
+        assert args.shuffled_labels_path is not None
+        print(f"Loading shuffled labels from: {args.shuffled_labels_path}")
+        shuffled_data = load_shuffled_labels(args.shuffled_labels_path)
+        n_train_samples = len(shuffled_data["shuffled_labels"])  # pyright: ignore[reportArgumentType]
 
-    # Subset data and apply shuffled labels
-    train_dataset.data = train_dataset.data[:n_train_samples]
-    train_dataset.targets = shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
+        # Subset data and apply shuffled labels
+        train_dataset.data = train_dataset.data[:n_train_samples]
+        train_dataset.targets = shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
 
-    print(
-        f"Loaded {n_train_samples} shuffled labels (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
-    )
-    print("Test set uses original labels - expect ~10% test accuracy if purely memorizing")
+        print(
+            f"Loaded {n_train_samples} shuffled labels (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
+        )
+        print("Test set uses original labels - expect ~10% test accuracy if purely memorizing")
+    else:
+        # Use original labels but subset to same size for fair comparison
+        n_train_samples = args.n_train_samples
+        train_dataset.data = train_dataset.data[:n_train_samples]
+        train_dataset.targets = train_dataset.targets[:n_train_samples]
+        print(f"Using original labels with {n_train_samples} training samples")
+        print("Test set uses original labels - expect high test accuracy")
 
     # Setup output directory
     output_dir = Path(SPD_OUT_DIR) / "mnist"
@@ -221,7 +250,7 @@ def main():
     if not args.no_wandb:
         wandb.init(
             project="spd-mnist",
-            name=f"mnist_{n_train_samples}samples",
+            name=f"mnist_{args.label_type}_{n_train_samples}samples_h{args.hidden_dim}",
             config=vars(args),
         )
 
