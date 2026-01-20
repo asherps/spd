@@ -8,6 +8,7 @@ from spd.configs import (
     CIMaskedReconLayerwiseLossConfig,
     CIMaskedReconLossConfig,
     CIMaskedReconSubsetLossConfig,
+    ComponentWeightSparsityLossConfig,
     FaithfulnessLossConfig,
     ImportanceMinimalityLossConfig,
     LossMetricConfigType,
@@ -25,6 +26,7 @@ from spd.metrics import (
     ci_masked_recon_layerwise_loss,
     ci_masked_recon_loss,
     ci_masked_recon_subset_loss,
+    component_weight_sparsity_loss,
     faithfulness_loss,
     importance_minimality_loss,
     pgd_recon_layerwise_loss,
@@ -75,6 +77,11 @@ def compute_total_loss(
                     p_anneal_start_frac=cfg.p_anneal_start_frac,
                     p_anneal_final_p=cfg.p_anneal_final_p,
                     p_anneal_end_frac=cfg.p_anneal_end_frac,
+                )
+            case ComponentWeightSparsityLossConfig():
+                loss = component_weight_sparsity_loss(
+                    model=model,
+                    pnorm=cfg.pnorm,
                 )
             case UnmaskedReconLossConfig():
                 loss = unmasked_recon_loss(

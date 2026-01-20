@@ -10,6 +10,26 @@ from spd.metrics.base import Metric
 from spd.models.component_model import CIOutputs, ComponentModel
 
 
+def component_weight_sparsity_loss(
+    model: ComponentModel,
+    pnorm: float = 1.0,
+) -> Float[Tensor, ""]:
+    """Compute L-p norm penalty on component U and V weights.
+
+    Args:
+        model: ComponentModel with U/V matrices to penalize
+        pnorm: P-norm to use (1.0 for L1, 2.0 for L2)
+
+    Returns:
+        Scalar tensor with the weight sparsity penalty
+    """
+    device = next(iter(model.parameters())).device
+    total = torch.tensor(0.0, device=device)
+    for components in model.components.values():
+        total = total + torch.norm(components.U, p=pnorm) + torch.norm(components.V, p=pnorm)
+    return total / len(model.components) if model.components else total
+
+
 class ComponentWeightSparsityLoss(Metric):
     """L-p norm penalty on component weights to encourage sparse components."""
 

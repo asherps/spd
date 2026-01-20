@@ -15,6 +15,9 @@ from .component_activation_density import ComponentActivationDensity as Componen
 from .component_weight_sparsity_loss import (
     ComponentWeightSparsityLoss as ComponentWeightSparsityLoss,
 )
+from .component_weight_sparsity_loss import (
+    component_weight_sparsity_loss as component_weight_sparsity_loss,
+)
 from .faithfulness_loss import FaithfulnessLoss as FaithfulnessLoss
 from .faithfulness_loss import faithfulness_loss as faithfulness_loss
 from .identity_ci_error import IdentityCIError as IdentityCIError

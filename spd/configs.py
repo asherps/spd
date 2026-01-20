@@ -202,6 +202,13 @@ class ImportanceMinimalityLossConfig(LossMetricConfig):
         return data
 
 
+class ComponentWeightSparsityLossConfig(LossMetricConfig):
+    classname: Literal["ComponentWeightSparsityLoss"] = "ComponentWeightSparsityLoss"
+    pnorm: NonNegativeFloat = Field(
+        default=1.0, description="P-norm for weight penalty (1.0=L1, 2.0=L2)"
+    )
+
+
 class UniformKSubsetRoutingConfig(BaseConfig):
     type: Literal["uniform_k_subset"] = "uniform_k_subset"
 
@@ -365,7 +372,12 @@ ReconLossConfigType = (
     | StochasticHiddenActsReconLossConfig
 )
 
-LossMetricConfigType = FaithfulnessLossConfig | ImportanceMinimalityLossConfig | ReconLossConfigType
+LossMetricConfigType = (
+    FaithfulnessLossConfig
+    | ImportanceMinimalityLossConfig
+    | ComponentWeightSparsityLossConfig
+    | ReconLossConfigType
+)
 
 EvalOnlyMetricConfigType = (
     CEandKLLossesConfig
