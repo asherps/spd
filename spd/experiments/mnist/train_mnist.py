@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import MNISTMemorizationModel
-from spd.settings import SPD_OUT_DIR
 
 
 def run_epoch(
@@ -44,7 +43,7 @@ def run_epoch(
             correct += output.argmax(dim=1).eq(target).sum().item()
             total += target.size(0)
 
-    return total_loss / len(dataloader), 100.0 * correct / total  # pyright: ignore[reportArgumentType]
+    return total_loss / len(dataloader), 100.0 * correct / total
 
 
 def train_single_model(
@@ -145,7 +144,7 @@ def main():
         train_dataset.targets = train_dataset.targets[:n_train]
         print(f"Using {n_train} samples with original labels")
 
-    output_dir = Path(SPD_OUT_DIR) / "mnist"
+    output_dir = Path(__file__).parent / "models"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)

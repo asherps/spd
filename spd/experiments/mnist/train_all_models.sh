@@ -19,8 +19,7 @@ HIDDEN_DIM=128        # Fixed hidden dimension
 LR_SHUFFLED=1e-4      # Fixed LR for memorization
 LRS_ORIGINAL=(1e-4 5e-4 1e-3)  # Sweep LRs for natural learning
 
-SPD_OUT_DIR="${SPD_OUT_DIR:-$HOME/spd_out}"
-SHUFFLED_LABELS="$SPD_OUT_DIR/mnist/shuffled_labels_seed${SEED}.pkl"
+SHUFFLED_LABELS="$SCRIPT_DIR/datasets/shuffled_labels_seed${SEED}.pkl"
 
 echo "Training MNIST Models (h=$HIDDEN_DIM)"
 echo "Shuffled: 1 model (fixed LR=$LR_SHUFFLED)"
@@ -59,4 +58,4 @@ for lr in "${LRS_ORIGINAL[@]}"; do
 done
 
 echo ""
-echo "All models trained! See: $SPD_OUT_DIR/mnist/target_model_*.pt"
+echo "All models trained! See: $SCRIPT_DIR/models/target_model_*.pt"

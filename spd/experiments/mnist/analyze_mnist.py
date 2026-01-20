@@ -138,7 +138,7 @@ def load_model_and_data(
     )
 
     logger.info(
-        f"Loaded {len(train_dataset)} train examples, {len(test_dataset)} test examples (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
+        f"Loaded {len(train_dataset)} train examples, {len(test_dataset)} test examples (seed: {shuffled_data['seed']})"
     )
 
     return model, train_dataset, test_dataset, shuffled_data
@@ -272,8 +272,8 @@ def collect_component_statistics(
 
 def analyze_specialization(
     stats: ComponentStatistics,
-    original_labels: np.ndarray,
-    shuffled_labels: np.ndarray,
+    _original_labels: np.ndarray,
+    _shuffled_labels: np.ndarray,
     significance_level: float = 0.05,
 ) -> SpecializationAnalysis:
     """Analyze component specialization and find statistically significant associations.

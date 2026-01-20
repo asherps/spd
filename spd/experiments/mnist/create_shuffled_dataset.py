@@ -7,8 +7,6 @@ from pathlib import Path
 import numpy as np
 from torchvision import datasets, transforms
 
-from spd.settings import SPD_OUT_DIR
-
 
 def create_shuffled_mnist(
     seed: int = 42, n_samples: int = 500, output_dir: Path | None = None
@@ -18,13 +16,14 @@ def create_shuffled_mnist(
     Args:
         seed: Random seed for label shuffling
         n_samples: Number of training samples to include (uses first N samples)
-        output_dir: Where to save the shuffled labels (default: SPD_OUT_DIR/mnist/shuffled_data)
+        output_dir: Where to save the shuffled labels (default: spd/experiments/mnist/datasets)
 
     Returns:
         Path to the saved shuffled labels file
     """
     if output_dir is None:
-        output_dir = Path(SPD_OUT_DIR) / "mnist"
+        # Save in mnist experiment directory
+        output_dir = Path(__file__).parent / "datasets"
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

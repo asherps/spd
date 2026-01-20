@@ -14,7 +14,6 @@ from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import load_pretrained_mnist_model
 from spd.log import logger
 from spd.run_spd import optimize
-from spd.settings import SPD_OUT_DIR
 from spd.utils.data_utils import DatasetGeneratedDataLoader
 from spd.utils.distributed_utils import get_device
 from spd.utils.general_utils import save_pre_run_info, set_seed
@@ -139,11 +138,11 @@ def main(
     set_seed(config.seed)
 
     # Create output directory with run counter
-    mnist_dir = Path(SPD_OUT_DIR) / "mnist"
-    mnist_dir.mkdir(parents=True, exist_ok=True)
+    runs_dir = Path(__file__).parent / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
 
     # Find next run number
-    existing_runs = [d for d in mnist_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
+    existing_runs = [d for d in runs_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
     if existing_runs:
         run_numbers = []
         for run_dir in existing_runs:
@@ -157,7 +156,7 @@ def main(
         next_num = 1
 
     run_id = f"run_{next_num:03d}"
-    out_dir = mnist_dir / run_id
+    out_dir = runs_dir / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     tags = [i for i in ["mnist", evals_id, sweep_id] if i is not None]
@@ -200,9 +199,7 @@ def main(
         train_dataset.data = train_dataset.data[:n_train_samples]
         train_dataset.targets = shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
 
-        logger.info(
-            f"Loaded {n_train_samples} shuffled labels (seed: {shuffled_data['seed']})"  # pyright: ignore[reportIndexIssue]
-        )
+        logger.info(f"Loaded {n_train_samples} shuffled labels (seed: {shuffled_data['seed']})")
     else:
         logger.warning("No shuffled_labels_path provided - using original MNIST labels")
 

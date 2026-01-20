@@ -39,13 +39,13 @@ copy-templates:
 # checks
 .PHONY: type
 type:
-	basedpyright
+	uv run basedpyright
 
 .PHONY: format
 format:
 	# Fix all autofixable problems (which sorts imports) then format errors
-	ruff check --fix
-	ruff format
+	uv run ruff check --fix
+	uv run ruff format
 
 .PHONY: check
 check: format type

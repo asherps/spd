@@ -86,9 +86,9 @@ eval_metric_configs:
 # --- Pretrained model info ---
 # Update this path after training your MNIST model
 pretrained_model_class: "spd.experiments.mnist.models.MNISTMemorizationModel"
-pretrained_model_path: "/root/spd_out/mnist/target_model.pt"
+pretrained_model_path: "spd/experiments/mnist/models/target_model_shuffled_h128_lr0.0001.pt"
 
 # --- Task Specific ---
 task_config:
   task_name: mnist
-  shuffled_labels_path: "/root/spd_out/mnist/shuffled_labels_seed42.pkl"
+  shuffled_labels_path: "spd/experiments/mnist/datasets/shuffled_labels_seed42.pkl"

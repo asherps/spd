@@ -123,9 +123,7 @@ class AppRunner:
         start = time.time()
         while time.time() < (start + STARTUP_TIMEOUT_SECONDS):
             try:
-                response = requests.get(
-                    f"http://localhost:{port}/api/health", timeout=1.0
-                )
+                response = requests.get(f"http://localhost:{port}/api/health", timeout=1.0)
                 if response.status_code == 200:
                     # Print success message immediately when ready
                     if pid is not None:
@@ -136,9 +134,7 @@ class AppRunner:
             except requests.RequestException:
                 pass
             time.sleep(0.5)
-        print(
-            f"{AnsiEsc.RED}✗{AnsiEsc.RESET} {name} healthcheck failed", file=sys.stderr
-        )
+        print(f"{AnsiEsc.RED}✗{AnsiEsc.RESET} {name} healthcheck failed", file=sys.stderr)
         sys.exit(1)
 
     def spawn_backend(self, port: int, logfile: TextIO) -> subprocess.Popen[str]:
@@ -287,15 +283,11 @@ class AppRunner:
                 backend_future.result()
                 frontend_future.result()
 
-            print(
-                f"{AnsiEsc.DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{AnsiEsc.RESET}\n"
-            )
+            print(f"{AnsiEsc.DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━{AnsiEsc.RESET}\n")
 
             # Success banner
             print(f"{AnsiEsc.GREEN}{AnsiEsc.BOLD}✓ Ready!{AnsiEsc.RESET}\n")
-            print(
-                f"{AnsiEsc.DIM}Backend   http://localhost:{backend_port}/{AnsiEsc.RESET}"
-            )
+            print(f"{AnsiEsc.DIM}Backend   http://localhost:{backend_port}/{AnsiEsc.RESET}")
             print(
                 f"{AnsiEsc.BOLD}Frontend  {AnsiEsc.GREEN}{AnsiEsc.BOLD}{AnsiEsc.UNDERLINE}http://localhost:{frontend_port}/{AnsiEsc.RESET}\n"
             )
