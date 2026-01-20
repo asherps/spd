@@ -15,7 +15,11 @@ from torch import Tensor, nn
 from tqdm.auto import tqdm
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
-from spd.app.backend.optim_cis import OptimCIConfig, compute_label_prob, optimize_ci_values
+from spd.app.backend.optim_cis import (
+    OptimCIConfig,
+    compute_label_prob,
+    optimize_ci_values,
+)
 from spd.configs import SamplingType
 from spd.models.component_model import ComponentModel, OutputWithCache
 from spd.models.components import make_mask_infos
@@ -130,7 +134,9 @@ def get_sources_by_target(
         Dict mapping out_layer -> list of in_layers that have gradient flow to it.
     """
     # Use a small dummy batch - we only need to trace gradient connections
-    batch: Float[Tensor, "batch seq"] = torch.zeros(2, 3, dtype=torch.long, device=device)
+    batch: Float[Tensor, "batch seq"] = torch.zeros(
+        2, 3, dtype=torch.long, device=device
+    )
 
     with torch.no_grad():
         output_with_cache: OutputWithCache = model(batch, cache_type="input")
@@ -152,14 +158,19 @@ def get_sources_by_target(
     wte_cache: dict[str, Tensor] = {}
 
     def wte_hook(
-        _module: nn.Module, _args: tuple[Any, ...], _kwargs: dict[Any, Any], output: Tensor
+        _module: nn.Module,
+        _args: tuple[Any, ...],
+        _kwargs: dict[Any, Any],
+        output: Tensor,
     ) -> Any:
         output.requires_grad_(True)
         wte_cache["wte_post_detach"] = output
         return output
 
     assert isinstance(model.target_model.wte, nn.Module), "wte is not a module"
-    wte_handle = model.target_model.wte.register_forward_hook(wte_hook, with_kwargs=True)
+    wte_handle = model.target_model.wte.register_forward_hook(
+        wte_hook, with_kwargs=True
+    )
 
     with torch.enable_grad():
         comp_output_with_cache: OutputWithCache = model(
@@ -243,14 +254,19 @@ def compute_edges_from_ci(
     """
     n_seq = tokens.shape[1]
 
-    ci_masked_infos = make_mask_infos(component_masks=ci_lower_leaky, routing_masks="all")
+    ci_masked_infos = make_mask_infos(
+        component_masks=ci_lower_leaky, routing_masks="all"
+    )
 
     # Hook to capture wte output with gradients
     # this is gross but basedpyright reports unreachable if we make this a `Tensor | None`
     wte_cached_output: Tensor = torch.tensor([])
 
     def wte_hook(
-        _module: nn.Module, _args: tuple[Any, ...], _kwargs: dict[Any, Any], output: Tensor
+        _module: nn.Module,
+        _args: tuple[Any, ...],
+        _kwargs: dict[Any, Any],
+        output: Tensor,
     ) -> Any:
         nonlocal wte_cached_output
         output.requires_grad_(True)
@@ -259,7 +275,9 @@ def compute_edges_from_ci(
         return output
 
     assert isinstance(model.target_model.wte, nn.Module), "wte is not a module"
-    wte_handle = model.target_model.wte.register_forward_hook(wte_hook, with_kwargs=True)
+    wte_handle = model.target_model.wte.register_forward_hook(
+        wte_hook, with_kwargs=True
+    )
 
     with torch.enable_grad():
         comp_output_with_cache: OutputWithCache = model(
@@ -347,7 +365,9 @@ def compute_edges_from_ci(
                             # assert weighted.shape == (n_seq, model.C)
                             weighted = weighted.sum(dim=1, keepdim=True)
 
-                        s_in_range = range(s_out + 1) if is_kv_to_o_pair_flag else [s_out]
+                        s_in_range = (
+                            range(s_out + 1) if is_kv_to_o_pair_flag else [s_out]
+                        )
 
                         for s_in in s_in_range:
                             for c_in in source_info.alive_c_idxs:
@@ -355,8 +375,12 @@ def compute_edges_from_ci(
                                     continue
                                 strength = weighted[s_in, c_in].item()
                                 edge = Edge(
-                                    source=Node(layer=source, seq_pos=s_in, component_idx=c_in),
-                                    target=Node(layer=target, seq_pos=s_out, component_idx=c_out),
+                                    source=Node(
+                                        layer=source, seq_pos=s_in, component_idx=c_in
+                                    ),
+                                    target=Node(
+                                        layer=target, seq_pos=s_out, component_idx=c_out
+                                    ),
                                     strength=strength,
                                     is_cross_seq=is_kv_to_o_pair_flag,
                                 )
@@ -372,7 +396,9 @@ def compute_edges_from_ci(
         pbar.close()
 
     node_ci_vals = extract_node_ci_vals(ci_lower_leaky)
-    return LocalAttributionResult(edges=edges, output_probs=output_probs, node_ci_vals=node_ci_vals)
+    return LocalAttributionResult(
+        edges=edges, output_probs=output_probs, node_ci_vals=node_ci_vals
+    )
 
 
 def compute_local_attributions(
@@ -442,7 +468,10 @@ def compute_local_attributions_optimized(
     if optim_config.ce_loss_config is not None:
         with torch.no_grad():
             label_prob = compute_label_prob(
-                model, tokens, ci_outputs.lower_leaky, optim_config.ce_loss_config.label_token
+                model,
+                tokens,
+                ci_outputs.lower_leaky,
+                optim_config.ce_loss_config.label_token,
             )
 
     # Signal transition to graph computation stage
@@ -636,9 +665,9 @@ def compute_intervention_forward(
     for layer, seq_pos, c_idx in active_nodes:
         assert layer in component_masks, f"Layer {layer} not in model"
         assert 0 <= seq_pos < seq_len, f"seq_pos {seq_pos} out of bounds [0, {seq_len})"
-        assert 0 <= c_idx < model.module_to_c[layer], (
-            f"component_idx {c_idx} out of bounds [0, {model.module_to_c[layer]})"
-        )
+        assert (
+            0 <= c_idx < model.module_to_c[layer]
+        ), f"component_idx {c_idx} out of bounds [0, {model.module_to_c[layer]})"
         component_masks[layer][0, seq_pos, c_idx] = 1.0
 
     mask_infos = make_mask_infos(component_masks, routing_masks="all")
@@ -650,7 +679,9 @@ def compute_intervention_forward(
 
         # Target model forward pass (no masks)
         target_logits: Float[Tensor, "1 seq vocab"] = model(tokens)
-        target_probs: Float[Tensor, "1 seq vocab"] = torch.softmax(target_logits, dim=-1)
+        target_probs: Float[Tensor, "1 seq vocab"] = torch.softmax(
+            target_logits, dim=-1
+        )
 
     # Get top-k predictions per position (based on SPD model's top-k)
     predictions_per_position: list[list[tuple[str, int, float, float, float]]] = []

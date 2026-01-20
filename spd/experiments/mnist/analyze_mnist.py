@@ -117,12 +117,8 @@ def load_model_and_data(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     )
 
-    train_dataset = datasets.MNIST(
-        "./data", train=True, download=True, transform=transform
-    )
-    test_dataset = datasets.MNIST(
-        "./data", train=False, download=True, transform=transform
-    )
+    train_dataset = datasets.MNIST("./data", train=True, download=True, transform=transform)
+    test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
 
     # Load and apply shuffled labels
     shuffled_labels_path = Path(shuffled_labels_path).expanduser()
@@ -133,16 +129,12 @@ def load_model_and_data(
     shuffled_data["original_labels"] = np.array(train_dataset.targets.clone())
 
     # Get number of samples from shuffled dataset
-    n_train_samples = len(
-        shuffled_data["shuffled_labels"]
-    )  # pyright: ignore[reportArgumentType]
+    n_train_samples = len(shuffled_data["shuffled_labels"])  # pyright: ignore[reportArgumentType]
 
     # Subset data and apply shuffled labels
     train_dataset.data = train_dataset.data[:n_train_samples]
     train_dataset.targets = torch.tensor(
-        shuffled_data[
-            "shuffled_labels"
-        ].tolist()  # pyright: ignore[reportAttributeAccessIssue]
+        shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
     )
 
     logger.info(
@@ -182,23 +174,16 @@ def collect_component_statistics(
 
     # Initialize statistics
     stats = ComponentStatistics(
-        activation_counts={
-            name: np.zeros(c, dtype=np.int64) for name, c in module_to_c.items()
-        },
-        ci_sums={
-            name: np.zeros(c, dtype=np.float64) for name, c in module_to_c.items()
-        },
-        mean_ci={
-            name: np.zeros(c, dtype=np.float64) for name, c in module_to_c.items()
-        },
+        activation_counts={name: np.zeros(c, dtype=np.int64) for name, c in module_to_c.items()},
+        ci_sums={name: np.zeros(c, dtype=np.float64) for name, c in module_to_c.items()},
+        mean_ci={name: np.zeros(c, dtype=np.float64) for name, c in module_to_c.items()},
         max_ci={name: np.zeros(c, dtype=np.float64) for name, c in module_to_c.items()},
         top_example_samplers={
             name: [ReservoirSampler[ExampleInfo](k=top_k) for _ in range(c)]
             for name, c in module_to_c.items()
         },
         example_ci_matrices={
-            name: np.zeros((n_examples, c), dtype=np.float32)
-            for name, c in module_to_c.items()
+            name: np.zeros((n_examples, c), dtype=np.float32) for name, c in module_to_c.items()
         },
         class_activation_counts={
             name: np.zeros((c, 10), dtype=np.int64) for name, c in module_to_c.items()
@@ -209,9 +194,7 @@ def collect_component_statistics(
     )
 
     # Create dataloader
-    dataloader = DataLoader(
-        dataset, batch_size=batch_size, shuffle=False, num_workers=0
-    )
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
     logger.info(f"Collecting statistics over {n_examples} examples...")
     example_offset = 0
@@ -239,30 +222,24 @@ def collect_component_statistics(
                 active_mask = ci_np > ci_threshold
                 stats.activation_counts[module_name] += active_mask.sum(axis=0)
                 stats.ci_sums[module_name] += ci_np.sum(axis=0)
-                stats.max_ci[module_name] = np.maximum(
-                    stats.max_ci[module_name], ci_np.max(axis=0)
-                )
+                stats.max_ci[module_name] = np.maximum(stats.max_ci[module_name], ci_np.max(axis=0))
 
                 # Update per-example CI matrix
-                example_slice = slice(
-                    example_offset, example_offset + current_batch_size
-                )
+                example_slice = slice(example_offset, example_offset + current_batch_size)
                 stats.example_ci_matrices[module_name][example_slice] = ci_np
 
                 # Update class-specific activation counts
                 for class_idx in range(10):
                     class_mask = labels_np == class_idx
                     if class_mask.any():
-                        stats.class_activation_counts[module_name][
-                            :, class_idx
-                        ] += active_mask[class_mask].sum(axis=0)
+                        stats.class_activation_counts[module_name][:, class_idx] += active_mask[
+                            class_mask
+                        ].sum(axis=0)
 
                 # Update co-activation matrix
                 for i in range(current_batch_size):
                     active_i = active_mask[i]  # [C]
-                    stats.coactivation_counts[module_name] += np.outer(
-                        active_i, active_i
-                    )
+                    stats.coactivation_counts[module_name] += np.outer(active_i, active_i)
 
                 # Update top-k examples using reservoir sampling
                 for comp_idx in range(module_to_c[module_name]):
@@ -275,9 +252,7 @@ def collect_component_statistics(
                                 orig_label=int(labels_np[i]),
                                 shuf_label=int(labels_np[i]),  # Same in this context
                             )
-                            stats.top_example_samplers[module_name][comp_idx].add(
-                                example_info
-                            )
+                            stats.top_example_samplers[module_name][comp_idx].add(example_info)
 
             example_offset += current_batch_size
 
@@ -355,9 +330,7 @@ def analyze_specialization(
         bonferroni_alpha = significance_level / n_tests
 
         for comp_idx in range(n_components):
-            if (
-                total_activations[comp_idx] < 30
-            ):  # Skip components with too few activations
+            if total_activations[comp_idx] < 30:  # Skip components with too few activations
                 continue
 
             p_expected = 0.1
@@ -379,9 +352,7 @@ def analyze_specialization(
                 if p_value < bonferroni_alpha:
                     # Compute z-score for interpretability
                     expected_val = total_activations[comp_idx] * p_expected
-                    std = np.sqrt(
-                        total_activations[comp_idx] * p_expected * (1 - p_expected)
-                    )
+                    std = np.sqrt(total_activations[comp_idx] * p_expected * (1 - p_expected))
                     z_score = (observed - expected_val) / std
 
                     significant_associations.append(

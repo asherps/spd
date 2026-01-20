@@ -1,97 +1,56 @@
 #!/bin/bash
-# Train MNIST models for multiple hyperparameters with both shuffled and original labels
+set -e
 
-set -e  # Exit on error
-
-# Find repo root (assuming this script is in spd/experiments/mnist/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-# Activate virtual environment
-if [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
-    source "$REPO_ROOT/.venv/bin/activate"
-else
-    echo "ERROR: Virtual environment not found at $REPO_ROOT/.venv"
-    echo "Run 'make install-dev' from repo root first"
+[ -f "$REPO_ROOT/.venv/bin/activate" ] && source "$REPO_ROOT/.venv/bin/activate" || {
+    echo "ERROR: Virtual environment not found. Run 'make install-dev' first"
     exit 1
-fi
+}
 
-# Change to repo root so Python can find the spd module
 cd "$REPO_ROOT"
 
-# Configuration
 N_SAMPLES=500
-EPOCHS=100
+EPOCHS_SHUFFLED=30
+EPOCHS_ORIGINAL=15
 SEED=42
 HIDDEN_DIMS=(32 64 128)
 LEARNING_RATES=(1e-4 5e-4 1e-3)
 
-# Get SPD_OUT_DIR
-if [ -d "/mnt/polished-lake/artifacts/mechanisms/spd" ]; then
-    SPD_OUT_DIR="/mnt/polished-lake/artifacts/mechanisms/spd"
-else
-    SPD_OUT_DIR="$HOME/spd_out"
-fi
-
+SPD_OUT_DIR="${SPD_OUT_DIR:-$HOME/spd_out}"
 SHUFFLED_LABELS="$SPD_OUT_DIR/mnist/shuffled_labels_seed${SEED}.pkl"
 
-echo "============================================"
 echo "Training MNIST Models - Hyperparameter Grid"
-echo "============================================"
-echo "Samples: $N_SAMPLES"
-echo "Epochs: $EPOCHS"
-echo "Seed: $SEED"
-echo "Hidden dims: ${HIDDEN_DIMS[@]}"
-echo "Learning rates: ${LEARNING_RATES[@]}"
-echo "Shuffled labels: $SHUFFLED_LABELS"
-echo ""
+echo "Config: ${#HIDDEN_DIMS[@]} hidden dims × ${#LEARNING_RATES[@]} LRs × 2 label types"
 
-# Check if shuffled labels exist
-if [ ! -f "$SHUFFLED_LABELS" ]; then
-    echo "ERROR: Shuffled labels not found at $SHUFFLED_LABELS"
-    echo "Create them first with:"
+[ -f "$SHUFFLED_LABELS" ] || {
+    echo "ERROR: Shuffled labels not found. Create with:"
     echo "  python -m spd.experiments.mnist.create_shuffled_dataset --seed $SEED --n_samples $N_SAMPLES"
     exit 1
-fi
+}
 
-# Train models for each hyperparameter combination
 for hidden_dim in "${HIDDEN_DIMS[@]}"; do
     for lr in "${LEARNING_RATES[@]}"; do
-        echo "============================================"
-        echo "Training: hidden_dim=$hidden_dim, lr=$lr"
-        echo "============================================"
-
-        # Train with shuffled labels (memorization)
-        echo "Training with SHUFFLED labels..."
-        python -m spd.experiments.mnist.train_mnist \
-            --label_type shuffled \
-            --shuffled_labels_path "$SHUFFLED_LABELS" \
-            --hidden_dim $hidden_dim \
-            --lr $lr \
-            --epochs $EPOCHS \
-            --seed $SEED \
-            --no_wandb
-
-        # Train with original labels (natural learning)
         echo ""
-        echo "Training with ORIGINAL labels..."
-        python -m spd.experiments.mnist.train_mnist \
-            --label_type original \
-            --n_train_samples $N_SAMPLES \
-            --hidden_dim $hidden_dim \
-            --lr $lr \
-            --epochs $EPOCHS \
-            --seed $SEED \
-            --no_wandb
+        echo "Training h=$hidden_dim, lr=$lr"
 
-        echo ""
+        for label_type in shuffled original; do
+            epochs=$([[ $label_type == "shuffled" ]] && echo $EPOCHS_SHUFFLED || echo $EPOCHS_ORIGINAL)
+            extra_args=""
+            [[ $label_type == "shuffled" ]] && extra_args="--shuffled_labels_path $SHUFFLED_LABELS" || extra_args="--n_train_samples $N_SAMPLES"
+
+            python -m spd.experiments.mnist.train_mnist \
+                --label_type $label_type \
+                $extra_args \
+                --hidden_dim $hidden_dim \
+                --lr $lr \
+                --epochs $epochs \
+                --seed $SEED \
+                --no_wandb
+        done
     done
 done
 
-echo "============================================"
-echo "All models trained!"
-echo "============================================"
-echo "Models saved to: $SPD_OUT_DIR/mnist/"
 echo ""
-echo "To list trained models:"
-echo "  ls -lh $SPD_OUT_DIR/mnist/target_model_*.pt"
+echo "All models trained! See: $SPD_OUT_DIR/mnist/target_model_*.pt"

@@ -11,27 +11,11 @@ from spd.models.component_model import CIOutputs, ComponentModel
 
 
 class ComponentWeightSparsityLoss(Metric):
-    """L1/L2 penalty on component weight parameters to encourage sparse components.
-
-    This loss penalizes the L-p norm of the component weight deltas (excluding bias terms),
-    encouraging components to use fewer non-zero parameters.
-    """
+    """L-p norm penalty on component weights to encourage sparse components."""
 
     metric_section: ClassVar[str] = "loss"
 
-    def __init__(
-        self,
-        model: ComponentModel,
-        device: str,
-        pnorm: float = 1.0,
-    ) -> None:
-        """Initialize weight sparsity loss.
-
-        Args:
-            model: ComponentModel to compute loss for
-            device: Device for computation
-            pnorm: P-norm to use (1.0 for L1, 2.0 for L2)
-        """
+    def __init__(self, model: ComponentModel, device: str, pnorm: float = 1.0) -> None:
         self.model = model
         self.device = device
         self.pnorm = pnorm
@@ -49,31 +33,15 @@ class ComponentWeightSparsityLoss(Metric):
         weight_deltas: Any,
         **_: Any,
     ) -> None:
-        """Calculate weight sparsity loss across all component layers.
-
-        This is a parameter-based loss, so batch data is unused.
-        """
-        total_loss = torch.tensor(0.0, device=self.device)
-        n_layers = 0
-
-        # Iterate through all component layers
+        total = torch.tensor(0.0, device=self.device)
         for components in self.model.components.values():
-            # Each components object has U and V matrices
-            # U: (C, u_dim), V: (v_dim, C)
-            u_norm = torch.norm(components.U, p=self.pnorm)
-            v_norm = torch.norm(components.V, p=self.pnorm)
-
-            # Add combined norm for this layer
-            total_loss = total_loss + u_norm + v_norm
-            n_layers += 1
-
-        # Average over number of layers
-        if n_layers > 0:
-            total_loss = total_loss / n_layers
-
-        self.loss_value = total_loss
+            total = (
+                total
+                + torch.norm(components.U, p=self.pnorm)
+                + torch.norm(components.V, p=self.pnorm)
+            )
+        self.loss_value = total / len(self.model.components) if self.model.components else total
 
     @override
     def compute(self) -> Float[Tensor, ""]:
-        """Return the computed loss value."""
         return self.loss_value
