@@ -12,17 +12,19 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$REPO_ROOT"
 
 N_SAMPLES=500
-EPOCHS_SHUFFLED=30
-EPOCHS_ORIGINAL=15
+EPOCHS_SHUFFLED=60    # Memorization needs more epochs
+EPOCHS_ORIGINAL=8     # Natural learning converges fast
 SEED=42
 HIDDEN_DIMS=(32 64 128)
-LEARNING_RATES=(1e-4 5e-4 1e-3)
+LR_SHUFFLED=1e-4      # Fixed LR for memorization
+LRS_ORIGINAL=(1e-4 5e-4 1e-3)  # Sweep LRs for natural learning
 
 SPD_OUT_DIR="${SPD_OUT_DIR:-$HOME/spd_out}"
 SHUFFLED_LABELS="$SPD_OUT_DIR/mnist/shuffled_labels_seed${SEED}.pkl"
 
-echo "Training MNIST Models - Hyperparameter Grid"
-echo "Config: ${#HIDDEN_DIMS[@]} hidden dims × ${#LEARNING_RATES[@]} LRs × 2 label types"
+echo "Training MNIST Models"
+echo "Shuffled: ${#HIDDEN_DIMS[@]} hidden dims (fixed LR=$LR_SHUFFLED)"
+echo "Original: ${#HIDDEN_DIMS[@]} hidden dims × ${#LRS_ORIGINAL[@]} LRs"
 
 [ -f "$SHUFFLED_LABELS" ] || {
     echo "ERROR: Shuffled labels not found. Create with:"
@@ -30,25 +32,33 @@ echo "Config: ${#HIDDEN_DIMS[@]} hidden dims × ${#LEARNING_RATES[@]} LRs × 2 l
     exit 1
 }
 
+# Train memorization models (fixed LR, more epochs)
 for hidden_dim in "${HIDDEN_DIMS[@]}"; do
-    for lr in "${LEARNING_RATES[@]}"; do
+    echo ""
+    echo "Training SHUFFLED: h=$hidden_dim, lr=$LR_SHUFFLED, epochs=$EPOCHS_SHUFFLED"
+    python -m spd.experiments.mnist.train_mnist \
+        --label_type shuffled \
+        --shuffled_labels_path "$SHUFFLED_LABELS" \
+        --hidden_dim $hidden_dim \
+        --lr $LR_SHUFFLED \
+        --epochs $EPOCHS_SHUFFLED \
+        --seed $SEED \
+        --no_wandb
+done
+
+# Train natural learning models (sweep LRs, fewer epochs)
+for hidden_dim in "${HIDDEN_DIMS[@]}"; do
+    for lr in "${LRS_ORIGINAL[@]}"; do
         echo ""
-        echo "Training h=$hidden_dim, lr=$lr"
-
-        for label_type in shuffled original; do
-            epochs=$([[ $label_type == "shuffled" ]] && echo $EPOCHS_SHUFFLED || echo $EPOCHS_ORIGINAL)
-            extra_args=""
-            [[ $label_type == "shuffled" ]] && extra_args="--shuffled_labels_path $SHUFFLED_LABELS" || extra_args="--n_train_samples $N_SAMPLES"
-
-            python -m spd.experiments.mnist.train_mnist \
-                --label_type $label_type \
-                $extra_args \
-                --hidden_dim $hidden_dim \
-                --lr $lr \
-                --epochs $epochs \
-                --seed $SEED \
-                --no_wandb
-        done
+        echo "Training ORIGINAL: h=$hidden_dim, lr=$lr, epochs=$EPOCHS_ORIGINAL"
+        python -m spd.experiments.mnist.train_mnist \
+            --label_type original \
+            --n_train_samples $N_SAMPLES \
+            --hidden_dim $hidden_dim \
+            --lr $lr \
+            --epochs $EPOCHS_ORIGINAL \
+            --seed $SEED \
+            --no_wandb
     done
 done
 
