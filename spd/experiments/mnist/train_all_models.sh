@@ -13,7 +13,7 @@ cd "$REPO_ROOT"
 
 N_SAMPLES=500
 EPOCHS_SHUFFLED=60    # Memorization needs more epochs
-EPOCHS_ORIGINAL=8     # Natural learning converges fast
+EPOCHS_ORIGINAL=12    # Natural learning with regularization
 SEED=42
 HIDDEN_DIM=128        # Fixed hidden dimension
 LR_SHUFFLED=1e-4      # Fixed LR for memorization

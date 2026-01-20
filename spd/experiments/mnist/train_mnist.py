@@ -58,7 +58,9 @@ def train_single_model(
     torch.manual_seed(args.seed)
     model = MNISTMemorizationModel(hidden_dim=args.hidden_dim).to(args.device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    # Add weight decay for regularization (only for non-memorization tasks)
+    weight_decay = 0.0 if args.label_type == "shuffled" else 1e-4
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     best_train_acc = 0.0
     train_acc = 0.0
