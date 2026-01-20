@@ -15,6 +15,14 @@ from spd.experiments.mnist.create_shuffled_dataset import load_shuffled_labels
 from spd.experiments.mnist.models import MNISTMemorizationModel
 
 
+def load_original_labels(labels_path: str) -> dict[str, object]:
+    """Load original labels from disk."""
+    import pickle
+
+    with open(labels_path, "rb") as f:
+        return pickle.load(f)
+
+
 def run_epoch(
     model: MNISTMemorizationModel,
     dataloader: DataLoader,  # pyright: ignore[reportMissingTypeArgument, reportUnknownParameterType]
@@ -115,7 +123,7 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--label_type", choices=["shuffled", "original"], required=True)
     parser.add_argument("--shuffled_labels_path", type=str, default=None)
-    parser.add_argument("--n_train_samples", type=int, default=500)
+    parser.add_argument("--original_labels_path", type=str, default=None)
     parser.add_argument("--no_wandb", action="store_true")
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
@@ -124,6 +132,8 @@ def main():
 
     if args.label_type == "shuffled" and not args.shuffled_labels_path:
         parser.error("--shuffled_labels_path required for shuffled labels")
+    if args.label_type == "original" and not args.original_labels_path:
+        parser.error("--original_labels_path required for original labels")
 
     transform = transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
@@ -139,10 +149,12 @@ def main():
         train_dataset.targets = shuffled_data["shuffled_labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
         print(f"Loaded {n_train} shuffled labels (seed: {shuffled_data['seed']})")
     else:
-        n_train = args.n_train_samples
+        assert args.original_labels_path
+        original_data = load_original_labels(args.original_labels_path)
+        n_train = len(original_data["labels"])  # pyright: ignore[reportArgumentType]
         train_dataset.data = train_dataset.data[:n_train]
-        train_dataset.targets = train_dataset.targets[:n_train]
-        print(f"Using {n_train} samples with original labels")
+        train_dataset.targets = original_data["labels"].tolist()  # pyright: ignore[reportAttributeAccessIssue]
+        print(f"Loaded {n_train} original labels (seed: {original_data['seed']})")
 
     output_dir = Path(__file__).parent / "models"
     output_dir.mkdir(parents=True, exist_ok=True)

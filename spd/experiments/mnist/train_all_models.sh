@@ -20,6 +20,7 @@ LR_SHUFFLED=1e-4      # Fixed LR for memorization
 LRS_ORIGINAL=(1e-4 5e-4 1e-3)  # Sweep LRs for natural learning
 
 SHUFFLED_LABELS="$SCRIPT_DIR/datasets/shuffled_labels_seed${SEED}.pkl"
+ORIGINAL_LABELS="$SCRIPT_DIR/datasets/original_labels_seed${SEED}.pkl"
 
 echo "Training MNIST Models (h=$HIDDEN_DIM)"
 echo "Shuffled: 1 model (fixed LR=$LR_SHUFFLED)"
@@ -27,6 +28,12 @@ echo "Original: ${#LRS_ORIGINAL[@]} models (sweep LRs)"
 
 [ -f "$SHUFFLED_LABELS" ] || {
     echo "ERROR: Shuffled labels not found. Create with:"
+    echo "  python -m spd.experiments.mnist.create_shuffled_dataset --seed $SEED --n_samples $N_SAMPLES"
+    exit 1
+}
+
+[ -f "$ORIGINAL_LABELS" ] || {
+    echo "ERROR: Original labels not found. Create with:"
     echo "  python -m spd.experiments.mnist.create_shuffled_dataset --seed $SEED --n_samples $N_SAMPLES"
     exit 1
 }
@@ -49,7 +56,7 @@ for lr in "${LRS_ORIGINAL[@]}"; do
     echo "Training ORIGINAL: h=$HIDDEN_DIM, lr=$lr, epochs=$EPOCHS_ORIGINAL"
     python -m spd.experiments.mnist.train_mnist \
         --label_type original \
-        --n_train_samples $N_SAMPLES \
+        --original_labels_path "$ORIGINAL_LABELS" \
         --hidden_dim $HIDDEN_DIM \
         --lr $lr \
         --epochs $EPOCHS_ORIGINAL \

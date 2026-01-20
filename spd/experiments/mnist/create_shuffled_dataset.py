@@ -10,16 +10,16 @@ from torchvision import datasets, transforms
 
 def create_shuffled_mnist(
     seed: int = 42, n_samples: int = 500, output_dir: Path | None = None
-) -> Path:
-    """Create MNIST dataset with shuffled labels and save to disk.
+) -> tuple[Path, Path]:
+    """Create MNIST dataset with shuffled labels and save both shuffled and original versions.
 
     Args:
         seed: Random seed for label shuffling
         n_samples: Number of training samples to include (uses first N samples)
-        output_dir: Where to save the shuffled labels (default: spd/experiments/mnist/datasets)
+        output_dir: Where to save the labels (default: spd/experiments/mnist/datasets)
 
     Returns:
-        Path to the saved shuffled labels file
+        Tuple of (shuffled_labels_path, original_labels_path)
     """
     if output_dir is None:
         # Save in mnist experiment directory
@@ -41,9 +41,6 @@ def create_shuffled_mnist(
     rng = np.random.RandomState(seed)
     shuffled_labels = rng.permutation(original_labels)
 
-    # Save shuffled labels and metadata
-    output_file = output_dir / f"shuffled_labels_seed{seed}.pkl"
-
     # Create mapping from original to shuffled
     # For analysis: which original digit maps to which shuffled label
     label_mapping = {}
@@ -56,24 +53,36 @@ def create_shuffled_mnist(
             label_mapping[orig_label][shuffled_label] = 0
         label_mapping[orig_label][shuffled_label] += 1
 
-    data_to_save = {
+    # Save shuffled labels
+    shuffled_file = output_dir / f"shuffled_labels_seed{seed}.pkl"
+    shuffled_data = {
         "shuffled_labels": shuffled_labels,
         "original_labels": original_labels,
         "seed": seed,
         "label_mapping": label_mapping,
         "n_samples": len(original_labels),
     }
+    with open(shuffled_file, "wb") as f:
+        pickle.dump(shuffled_data, f)
 
-    with open(output_file, "wb") as f:
-        pickle.dump(data_to_save, f)
+    # Save original labels (same examples, original labels)
+    original_file = output_dir / f"original_labels_seed{seed}.pkl"
+    original_data = {
+        "labels": original_labels,
+        "seed": seed,
+        "n_samples": len(original_labels),
+    }
+    with open(original_file, "wb") as f:
+        pickle.dump(original_data, f)
 
-    print(f"Saved shuffled labels to: {output_file}")
+    print(f"Saved shuffled labels to: {shuffled_file}")
+    print(f"Saved original labels to: {original_file}")
     print(f"Number of samples: {len(original_labels)}")
     print("\nLabel mapping (original -> shuffled counts):")
     for orig_digit in sorted(label_mapping.keys()):
         print(f"  Digit {orig_digit} maps to: {dict(sorted(label_mapping[orig_digit].items()))}")
 
-    return output_file
+    return shuffled_file, original_file
 
 
 def load_shuffled_labels(shuffled_labels_path: str | Path) -> dict[str, object]:
